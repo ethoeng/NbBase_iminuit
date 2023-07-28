@@ -1,0 +1,116 @@
+{
+	"values": {
+		"dead_layer_nm": 20.250410876066468,
+		"lambda_L_100mT_nm": 30.58847503445966,
+		"lambda_L_110mT_nm": 52.403323035783544,
+		"lambda_L_125mT_nm": 147.35831054765606,
+		"lambda_L_150mT_nm": 202.49525983002388,
+		"lambda_L_200mT_nm": Infinity,
+		"a": 61982.82371249026,
+		"b": 13193.988042572939,
+		"critical_temperature_K": 9.25,
+		"critical_field_2_T": 410.0,
+		"enhance_fact_100mT": 1.081,
+		"enhance_fact_110mT": 1.048637744614385,
+		"enhance_fact_125mT": 1.0000001527482933,
+		"enhance_fact_150mT": 1.0034887852660315,
+		"enhance_fact_200mT": 1.00000026327105
+	},
+	"errors": {
+		"dead_layer_nm": 2.989682269250002,
+		"lambda_L_100mT_nm": 8.225020694168146,
+		"lambda_L_110mT_nm": 8.957580695261033,
+		"lambda_L_125mT_nm": 21.472977664588804,
+		"lambda_L_150mT_nm": 32.82758530663949,
+		"lambda_L_200mT_nm": 689.7910446156636,
+		"a": 2049.3339515959706,
+		"b": 1038.404652109004,
+		"critical_temperature_K": 0.0925,
+		"critical_field_2_T": 4.1,
+		"enhance_fact_100mT": 0.01075268817204301,
+		"enhance_fact_110mT": 0.02826787524994434,
+		"enhance_fact_125mT": 0.07194850874354064,
+		"enhance_fact_150mT": 0.05080754057221315,
+		"enhance_fact_200mT": 0.01691870564531761
+	},
+	"limits": {
+		"dead_layer_nm": [
+			0.0,
+			Infinity
+		],
+		"lambda_L_100mT_nm": [
+			0.0,
+			Infinity
+		],
+		"lambda_L_110mT_nm": [
+			0.0,
+			Infinity
+		],
+		"lambda_L_125mT_nm": [
+			0.0,
+			Infinity
+		],
+		"lambda_L_150mT_nm": [
+			0.0,
+			Infinity
+		],
+		"lambda_L_200mT_nm": [
+			0.0,
+			Infinity
+		],
+		"a": [
+			0.0,
+			Infinity
+		],
+		"b": [
+			0.0,
+			Infinity
+		],
+		"critical_temperature_K": [
+			0.0,
+			15.0
+		],
+		"critical_field_2_T": [
+			0.0,
+			Infinity
+		],
+		"enhance_fact_100mT": [
+			1.0,
+			1.081
+		],
+		"enhance_fact_110mT": [
+			1.0,
+			1.081
+		],
+		"enhance_fact_125mT": [
+			1.0,
+			1.081
+		],
+		"enhance_fact_150mT": [
+			1.0,
+			1.081
+		],
+		"enhance_fact_200mT": [
+			1.0,
+			1.081
+		]
+	},
+	"fixed": {
+		"dead_layer_nm": false,
+		"lambda_L_100mT_nm": false,
+		"lambda_L_110mT_nm": false,
+		"lambda_L_125mT_nm": false,
+		"lambda_L_150mT_nm": false,
+		"lambda_L_200mT_nm": true,
+		"a": false,
+		"b": false,
+		"critical_temperature_K": true,
+		"critical_field_2_T": true,
+		"enhance_fact_100mT": true,
+		"enhance_fact_110mT": false,
+		"enhance_fact_125mT": false,
+		"enhance_fact_150mT": false,
+		"enhance_fact_200mT": false
+	},
+	"merrors": {}
+}
