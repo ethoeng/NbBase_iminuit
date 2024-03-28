@@ -16,6 +16,7 @@ import os
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
+
 def lighten_color(color, amount=0.5):
     """
     Lightens the given color by multiplying (1-luminosity) by the given amount.
@@ -39,14 +40,12 @@ from scipy import constants, integrate, interpolate, special
 
 from sklearn import linear_model
 
-# sys.path.append(
-#     "/home/rmlm/git/github/rmlmcfadden/hyperfine"
-# )  # Adds higher directory to Python modules path.
 sys.path.append("/mnt/c/Users/thoen/Desktop/RMLM-Global-Fit/ImplAveCode/hyperfine")
-
 from hyperfine.minuit import minuit2json, json2minuit, LeastSquares3D
 from hyperfine.GL_averaging import GL_Quad,averaged_fields_GL
-from hyperfine.bnmr.meissner_wVortex_BobCompare_globfit_wConst import DepthAveragingCalculator
+from hyperfine.bnmr.meissner_wVortex_ComplexLor_globfit import DepthAveragingCalculator
+
+from hyperfine.demagnetization import enhance_to_demag
 
 
 sys.path.append("/mnt/c/Users/thoen/Desktop/RevSciInst/rsi/figures/Python")
@@ -73,22 +72,24 @@ def fcn(
     lambda_L_125mT_nm: float,
     lambda_L_150mT_nm: float,
     lambda_L_200mT_nm: float,
-    a:float,#dipolar_field_T: float,
-    b:float,#correlation_time_s: float,
+    dipolar_field_T: float,
+    correlation_time_s: float,
     # temperature_K: float,
     critical_temperature_K: float,
     critical_field_2_T: float,
-    enhance_fact_50mT:float,
-    enhance_fact_100mT:float,
-    enhance_fact_110mT:float,
-    enhance_fact_125mT:float,
-    enhance_fact_150mT:float,
-    enhance_fact_200mT:float,
+    suscep_abs_50mT:float,
+    suscep_abs_100mT:float,
+    suscep_abs_110mT:float,
+    suscep_abs_125mT:float,
+    suscep_abs_150mT:float,
+    suscep_abs_200mT:float,
     const_SC:float,
     const_NC:float,
+
     # B_noscreen_T:float,
     # enhance_fact_mixed:float,
     # B_mixed_T:float,
+    demag_fact:float,
 ) -> float:
     temperature_K = np.asarray(temperatures_K)
     if temperature_K.size == 0:
@@ -102,22 +103,24 @@ def fcn(
             lambda_L_125mT_nm,
             lambda_L_150mT_nm,
             lambda_L_200mT_nm,
-            a,#dipolar_field_T: float,
-            b,#correlation_time_s: float,
+            dipolar_field_T,
+            correlation_time_s,
             temperature_K,
             critical_temperature_K,
             critical_field_2_T,
-            enhance_fact_50mT,
-            enhance_fact_100mT,
-            enhance_fact_110mT,
-            enhance_fact_125mT,
-            enhance_fact_150mT,
-            enhance_fact_200mT,
+            suscep_abs_50mT,
+            suscep_abs_100mT,
+            suscep_abs_110mT,
+            suscep_abs_125mT,
+            suscep_abs_150mT,
+            suscep_abs_200mT,
             const_SC,
             const_NC,
+
             # B_noscreen_T,
             # enhance_fact_mixed,
             # B_mixed_T,
+            demag_fact,
         )
     else:
         results = np.empty(temperature_K.size)
@@ -132,22 +135,24 @@ def fcn(
                 lambda_L_125mT_nm,
                 lambda_L_150mT_nm,
                 lambda_L_200mT_nm,
-                a,#dipolar_field_T: float,
-                b,#correlation_time_s: float,
+                dipolar_field_T,
+                correlation_time_s,
                 t,
                 critical_temperature_K,
                 critical_field_2_T,
-                enhance_fact_50mT,
-                enhance_fact_100mT,
-                enhance_fact_110mT,
-                enhance_fact_125mT,
-                enhance_fact_150mT,
-                enhance_fact_200mT,
+                suscep_abs_50mT,
+                suscep_abs_100mT,
+                suscep_abs_110mT,
+                suscep_abs_125mT,
+                suscep_abs_150mT,
+                suscep_abs_200mT,
                 const_SC,
                 const_NC,
+
                 # B_noscreen_T,
                 # enhance_fact_mixed,
                 # B_mixed_T,
+                demag_fact,
                     )
         return results
 
@@ -163,21 +168,22 @@ def fcn_b(
     lambda_L_125mT_nm: float,
     lambda_L_150mT_nm: float,
     lambda_L_200mT_nm: float,
-    a:float,#dipolar_field_T: float,
-    b:float,#correlation_time_s: float,
+    dipolar_field_T: float,
+    correlation_time_s: float,
     critical_temperature_K: float,
     critical_field_2_T: float,
-    enhance_fact_50mT:float,
-    enhance_fact_100mT:float,
-    enhance_fact_110mT:float,
-    enhance_fact_125mT:float,
-    enhance_fact_150mT:float,
-    enhance_fact_200mT:float,
+    suscep_abs_50mT:float,
+    suscep_abs_100mT:float,
+    suscep_abs_110mT:float,
+    suscep_abs_125mT:float,
+    suscep_abs_150mT:float,
+    suscep_abs_200mT:float,
     const_SC:float,
     const_NC:float,
     # B_noscreen_T:float,
     # enhance_fact_mixed:float,
     # B_mixed_T:float,
+    demag_fact,
 ) -> float:
     applied_field_T = np.asarray(applied_fields_T)
     if applied_field_T.size == 0:
@@ -191,22 +197,23 @@ def fcn_b(
             lambda_L_125mT_nm,
             lambda_L_150mT_nm,
             lambda_L_200mT_nm,
-            a,#dipolar_field_T: float,
-            b,#correlation_time_s: float,
+            dipolar_field_T,
+            correlation_time_s,
             temperature_K,
             critical_temperature_K,
             critical_field_2_T,
-            enhance_fact_50mT,
-            enhance_fact_100mT,
-            enhance_fact_110mT,
-            enhance_fact_125mT,
-            enhance_fact_150mT,
-            enhance_fact_200mT,
+            suscep_abs_50mT,
+            suscep_abs_100mT,
+            suscep_abs_110mT,
+            suscep_abs_125mT,
+            suscep_abs_150mT,
+            suscep_abs_200mT,
             const_SC,
             const_NC,
             # B_noscreen_T,
             # enhance_fact_mixed,
             # B_mixed_T,
+            demag_fact,
         )
     else:
         results = np.empty(applied_field_T.size)
@@ -221,22 +228,23 @@ def fcn_b(
                 lambda_L_125mT_nm,
                 lambda_L_150mT_nm,
                 lambda_L_200mT_nm,
-                a,#dipolar_field_T: float,
-                b,#correlation_time_s: float,
+                dipolar_field_T,
+                correlation_time_s,
                 temperature_K,
                 critical_temperature_K,
                 critical_field_2_T,
-                enhance_fact_50mT,
-                enhance_fact_100mT,
-                enhance_fact_110mT,
-                enhance_fact_125mT,
-                enhance_fact_150mT,
-                enhance_fact_200mT,
+                suscep_abs_50mT,
+                suscep_abs_100mT,
+                suscep_abs_110mT,
+                suscep_abs_125mT,
+                suscep_abs_150mT,
+                suscep_abs_200mT,
                 const_SC,
                 const_NC,
                 # B_noscreen_T,
                 # enhance_fact_mixed,
                 # B_mixed_T,  
+                demag_fact,
                 )
         return results
 
@@ -252,21 +260,22 @@ def fcn3d(
     lambda_L_125mT_nm: float,
     lambda_L_150mT_nm: float,
     lambda_L_200mT_nm: float,
-    a:float,#dipolar_field_T: float,
-    b:float,#correlation_time_s: float,
+    dipolar_field_T: float,
+    correlation_time_s: float,
     critical_temperature_K: float,
     critical_field_2_T: float,
-    enhance_fact_50mT:float,
-    enhance_fact_100mT:float,
-    enhance_fact_110mT:float,
-    enhance_fact_125mT:float,
-    enhance_fact_150mT:float,
-    enhance_fact_200mT:float,
+    suscep_abs_50mT:float,
+    suscep_abs_100mT:float,
+    suscep_abs_110mT:float,
+    suscep_abs_125mT:float,
+    suscep_abs_150mT:float,
+    suscep_abs_200mT:float, 
     const_SC:float,
-    const_NC:float, 
+    const_NC:float,
     # B_noscreen_T:float,
     # enhance_fact_mixed:float,
     # B_mixed_T:float,
+    demag_fact:float,
 ) -> float:
     return dac(
         energy_keV,
@@ -278,24 +287,24 @@ def fcn3d(
         lambda_L_125mT_nm,
         lambda_L_150mT_nm,
         lambda_L_200mT_nm,
-        a,#dipolar_field_T: float,
-        b,#correlation_time_s: float,
+        dipolar_field_T,
+        correlation_time_s,
         temperature_K,
         critical_temperature_K,
         critical_field_2_T,
-        enhance_fact_50mT,
-        enhance_fact_100mT,
-        enhance_fact_110mT,
-        enhance_fact_125mT,
-        enhance_fact_150mT,
-        enhance_fact_200mT,
+        suscep_abs_50mT,
+        suscep_abs_100mT,
+        suscep_abs_110mT,
+        suscep_abs_125mT,
+        suscep_abs_150mT,
+        suscep_abs_200mT,
         const_SC,
         const_NC,
         # B_noscreen_T,
         # enhance_fact_mixed,
         # B_mixed_T,
+        demag_fact,
     )
-
 
 
 """
@@ -303,7 +312,7 @@ def fcn3d(
 GLOBAL VARIABLES
 ###################
 """
-N_FIT_POINTS = 25
+N_FIT_POINTS = 50
 
 """
 Max
@@ -367,7 +376,7 @@ df_LPF.rename(
 
 df_LPF['Error_ave 1_T1_0'] = df_LPF[['Error- 1_T1_0','Error+ 1_T1_0']].mean(axis=1)
 Temps_K = np.sort(pd.unique(df_LPF["Temperature (K)"].round(decimals=2)))
-# print('24mT Temps:',Temps_K)
+print('24mT Temps:',Temps_K)
 
 """
 #############
@@ -801,7 +810,10 @@ data_100mT_Tscan = [
 
 """
 #############################
-NORMAL STATE DEPTH SCAN: 100 mT (14 K)
+NORMAL STATE DEPTH SCAN: 
+100 mT (14 K)
+50 mT (16.5 K)
+24 mT (15 K)
 ##############################
 """
 # data_100mT_Normal_Depthscan = df2[
@@ -811,6 +823,11 @@ NORMAL STATE DEPTH SCAN: 100 mT (14 K)
 data_100mT_Normal_Depthscan = df3[
                         np.isclose(df3["Temperature (K)"],14,atol=1.5)
                         & np.isclose(df3["B0 Field (T)"], 0.100, rtol=0.01)  
+                    ].copy() 
+
+data_50mT_Normal_Depthscan = df1[
+                        np.isclose(df1["Temperature (K)"],16.5,atol=0.5)
+                        & np.isclose(df1["B0 Field (T)"], 0.050, rtol=0.01)  
                     ].copy() 
 
 
@@ -884,9 +901,9 @@ data_50_mT_SC_Depthscan = df1[
                             np.isclose(df1["Temperature (K)"],4.5,rtol=0.01)
                         ].sort_values(by=['Impl. Energy (keV)']).copy()
 # Drop Duplicate for 20 keV #
-# data_50_mT_SC_Depthscan = data_50_mT_SC_Depthscan.drop(
-#                                                     data_50_mT_SC_Depthscan[(data_50_mT_SC_Depthscan["Run Number"] == 45162)].index
-#                                                     )
+data_50_mT_SC_Depthscan = data_50_mT_SC_Depthscan.drop(
+                                                    data_50_mT_SC_Depthscan[(data_50_mT_SC_Depthscan["Run Number"] == 45162)].index
+                                                    )
 
 
 data_100_mT_SC_Depthscan = df2[
@@ -1072,6 +1089,14 @@ data_list_df_B_plot = [
                     data_200mT_flat,
                 ]
 
+data_list_df_B_plot_orig = [
+                    data_100_mT_SC_Depthscan,
+                    data_110_mT_SC_Depthscan,
+                    data_125_mT_SC_Depthscan, #not working
+                    data_150_mT_SC_Depthscan,
+                    data_200_mT_SC_Depthscan,
+                ]
+
 
 data_list_df_B_plot_w50 = data_list_df_B_plot.copy()
 data_list_df_B_plot_w50.append(data_50_mT_SC_Depthscan)
@@ -1193,6 +1218,14 @@ cost_glob_init_ET_100 = [
                     # ], 
                 ]
 
+### Garbage Cost Here -> LPD-50 = 0 ###
+cost_glob_init_ET_50 = [
+                    data_50_mT_SC_Depthscan,
+                    data_200mT_flat,
+                    # data_200_mT_SC_Depthscan.loc[
+                    #                                 data_200_mT_SC_Depthscan["Impl. Energy (keV)"] > energy_keV_cutoff_vortex
+                    # ], 
+                ]
 
 cost_glob_init_ET_100_w50 = cost_glob_init_ET_100.copy()
 cost_glob_init_ET_100_w50.append(data_50_mT_SC_Depthscan)
@@ -1204,6 +1237,8 @@ cost_glob_init_Bob_100 = [
                 ]
 
 cost_glob_init_ET_Glob = data_list_df_B_plot
+
+cost_glob_init_ET_Glob_Orig = data_list_df_B_plot_orig #This includes 4 keV for 150,200 mT
 
 cost_glob_init_ET_Glob_w50 = data_list_df_B_plot_w50
 
@@ -1250,11 +1285,35 @@ cost_glob_init_ET_100_2 = [
 cost_glob_init_ET_100_2_w50 = cost_glob_init_ET_100_2.copy()
 cost_glob_init_ET_100_2_w50.append(data_50_mT_SC_Depthscan)
 
+
+
+
+
 """
 ##################### 
 # Costs for Propagation/Projection for Higher fields  #
 # ###################
 """
+
+E_50mT_Tscan_filter = np.array([20])#only 20 keV for T-scan @50mT
+# data_Oct21 = df1.drop(df1[
+#                                 df1["Temperature (K)"] < 10.0
+#                                 ].index)
+cost_glob_prop50 = [
+                    data_50_mT_SC_Depthscan[
+                        data_50_mT_SC_Depthscan["Impl. Energy (keV)"] > 10.0
+                    ],
+                    
+                    # data_50_mT_SC_Depthscan.drop(
+                    #     data_50_mT_SC_Depthscan[
+                    #     np.isclose(data_50_mT_SC_Depthscan["Impl. Energy (keV)"],8.0,atol=0.5)
+                    #     ].index
+                    # ) 
+                ]
+
+cost_glob_prop100 = [
+                    data_100_mT_SC_Depthscan
+                ]
 
 cost_glob_prop110 = [
                     data_110_mT_SC_Depthscan
@@ -1277,11 +1336,13 @@ cost_glob_prop200 = [
 # GLOBAL PARALLEL FIT
 # #########################################
 # """
+cost_used = [data_50mT_Normal_Depthscan, data_100mT_Normal_Depthscan]
+# data_list_df_B_plot
+# 
 
-cost_used = data_list_df_B_plot
 alldata = pd.concat(cost_used)
 
-# print(alldata.loc[:,["Run Number","B0 Field (T)","1_T1_0",'Error_ave 1_T1_0',"Impl. Energy (keV)","Temperature (K)"]])
+# print(alldata.loc[:,["Run Number","Impl. Energy (keV)"]])#,"B0 Field (T)","1_T1_0",'Error_ave 1_T1_0',"Temperature (K)"]])
 
 
 global_chi2 = LeastSquares3D(
@@ -1297,44 +1358,46 @@ global_chi2 = LeastSquares3D(
 
 
 
+
 """
 Load From json
 """
 
-with open("./Simple_vortex/Simple_Lor/Prop_ET_100/no_50mT/Flat200/SimpleLor_ETCSTVal_StandAlone_GlobalFits_AveLor.json", "r") as file_handle:
+with open("./Simple_vortex/Complex_Lor/ConstSC_zero/ET_100/no50/AveLor/Unbound_Hesse/ComplexLor_Flat200mT_cost(glob_init_ET_100)_Unbound_Fit(100,200,110,125,150)-BEST.json", "r") as file_handle:
     old_results = json.load(file_handle)
 
-
 # initial_params = dict()
-# initial_params["dead_layer_nm"] = 19.0
+# initial_params["dead_layer_nm"] = 22.6
 
-# initial_params["enhance_fact_50mT"] = 1.0 #1.081 
-# initial_params["lambda_L_50mT_nm"] = np.inf #31.0 
+# initial_params["lambda_L_50mT_nm"] = 40.1
+# initial_params["lambda_L_100mT_nm"] = 40.1
+# initial_params["lambda_L_110mT_nm"] = 58.9
+# initial_params["lambda_L_125mT_nm"] = 174.2
+# initial_params["lambda_L_150mT_nm"] = 226.3
+# initial_params["lambda_L_200mT_nm"] = 1559.0
 
-# initial_params["enhance_fact_100mT"] = 1.081
-# initial_params["lambda_L_100mT_nm"] = 42.3
-
-# initial_params["enhance_fact_110mT"] = 1.0#1.081
-# initial_params["lambda_L_110mT_nm"] = np.inf #58.9
-
-# initial_params["enhance_fact_125mT"] = 1.0
-# initial_params["lambda_L_125mT_nm"] = np.inf#174.2
-
-# initial_params["enhance_fact_150mT"] = 1.0
-# initial_params["lambda_L_150mT_nm"] = np.inf#226.3
-
-# initial_params["enhance_fact_200mT"] = 1.0
-# initial_params["lambda_L_200mT_nm"] = np.inf
-
-
-# initial_params["a"] = 61700
-# initial_params["b"] = 12200
+# initial_params["dipolar_field_T"] = 6.49577e-05
+# initial_params["correlation_time_s"] = 1.36428e-07
 
 # initial_params["critical_temperature_K"] = 9.25
 # initial_params["critical_field_2_T"] = 410.0
 
+# initial_params["suscep_abs_50mT"] = 1.000
+# initial_params["suscep_abs_100mT"] = 1.000
+# initial_params["suscep_abs_110mT"] = 1.000
+# initial_params["suscep_abs_125mT"] = 1.000
+# initial_params["suscep_abs_150mT"] = 1.000
+# initial_params["suscep_abs_200mT"] = 0.000
+
+# initial_params["demag_fact"] = enhance_to_demag(enhance_fact=1.081)
+
+
 # initial_params["const_SC"] = 0.0
 # initial_params["const_NC"] = 0.0
+
+# initial_params["B_noscreen_T"] = 140e-3
+# initial_params["enhance_fact_mixed"] = 1/0.98
+# initial_params["B_mixed_T"] = 115e-3
 
 
 
@@ -1342,108 +1405,112 @@ with open("./Simple_vortex/Simple_Lor/Prop_ET_100/no_50mT/Flat200/SimpleLor_ETCS
 #     global_chi2,
 #     **initial_params,# **old_fit_results["values"],
 # )
-
 m = Minuit(global_chi2, **old_results["values"])
-json2minuit(m, "./Simple_vortex/Simple_Lor/Prop_ET_100/no_50mT/Flat200/SimpleLor_ETCSTVal_StandAlone_GlobalFits_AveLor.json")
+
+
+json2minuit(m, "./Simple_vortex/Complex_Lor/ConstSC_zero/ET_100/no50/AveLor/Unbound_Hesse/ComplexLor_Flat200mT_cost(glob_init_ET_100)_Unbound_Fit(100,200,110,125,150)-BEST.json")
 
 
 
-# # # """ 
-# # # Used for cost-func 
-# # # """
-# m.values["dead_layer_nm"] = 20.0
-
-# m.values["enhance_fact_50mT"] = 1.0#1.081 
-# m.values["lambda_L_50mT_nm"] = np.inf#31.0 #
-# # m.errors["lambda_L_50mT_nm"] = m.errors["lambda_L_100mT_nm"]#np.inf
-
-# m.values["enhance_fact_100mT"] = 1.081
-# m.values["lambda_L_100mT_nm"] = 40.0#42.3
-# # m.errors["lambda_L_100mT_nm"] = m.errors["lambda_L_100mT_nm"]#np.inf
-
-# m.values["enhance_fact_110mT"] = 1.081#1.035
-# m.values["lambda_L_110mT_nm"] = 58.9 #np.inf
-# m.errors["lambda_L_110mT_nm"] = m.errors["lambda_L_100mT_nm"]#np.inf
-
-# m.values["enhance_fact_125mT"] = 1.081
-# m.values["lambda_L_125mT_nm"] = 174.2
-# m.errors["lambda_L_125mT_nm"] = m.errors["lambda_L_100mT_nm"]#np.inf
-
-# m.values["enhance_fact_150mT"] = 1.081
-# m.values["lambda_L_150mT_nm"] = 226.3
-# m.errors["lambda_L_150mT_nm"] = m.errors["lambda_L_100mT_nm"]#np.inf
-
-# m.values["enhance_fact_200mT"] = 1.0
-# m.values["lambda_L_200mT_nm"] = np.inf#200.0#
-# # m.errors["lambda_L_200mT_nm"] = m.errors["lambda_L_100mT_nm"]#np.inf
-
-
-
-# m.values["a"] = 61700
-# m.values["b"] = 12200
+"""
+############################################################
+Set value manually: Only for the very first step of fit, afterwards only load via json2minuit
+########################################################
+"""
 
 # m.values["critical_temperature_K"] = 9.25
 # m.values["critical_field_2_T"] = 410.0
 
-# m.values["const_SC"] = 0.0
+
 # m.values["const_NC"] = 0.0
 
+# m.values["dead_layer_nm"] = 20.0#15.701791105704196
+
+# m.values["dipolar_field_T"] = 6.54647e-05 #6.339851403569519e-05
+# m.values["correlation_time_s"] = 1.40561e-07#1.6969938410049679e-07
+
+
+# m.values["demag_fact"] = enhance_to_demag(enhance_fact=1.081)
+
+# m.values["const_SC"] = 0.0#3.538655479751185e-09
+
+# m.values["suscep_abs_50mT"] = 1.000
+# m.values["lambda_L_50mT_nm"] = 40.0#35.0#31.0
+# m.errors["lambda_L_50mT_nm"] = m.errors["lambda_L_100mT_nm"]
+
+# m.values["suscep_abs_100mT"] = 1.000#1.081
+# m.values["lambda_L_100mT_nm"] = 40.0#42.77730543616948
+
+# m.values["suscep_abs_110mT"] = 1.000
+# m.values["lambda_L_110mT_nm"] = 55.45053172805392
+# m.errors["lambda_L_110mT_nm"] = m.errors["lambda_L_100mT_nm"]
+
+# m.values["suscep_abs_125mT"] = 1.000#1.000
+# m.values["lambda_L_125mT_nm"] = 134.19894038700335
+# m.errors["lambda_L_125mT_nm"] = m.errors["lambda_L_100mT_nm"]
+
+# m.values["suscep_abs_150mT"] = 1.000
+# m.values["lambda_L_150mT_nm"] = 138.61516738082656
+# m.errors["lambda_L_150mT_nm"] = m.errors["lambda_L_100mT_nm"]
+
+# m.values["suscep_abs_200mT"] = 0.000
+# m.values["lambda_L_200mT_nm"] = np.inf#200.0#2162183.3129935795# 
+# m.errors["lambda_L_200mT_nm"] = m.errors["lambda_L_100mT_nm"]#2162183.3129935795# 
 
 """
 ALWAYS FIX
 """
 
-# m.fixed["critical_temperature_K"] = True
-# m.fixed["critical_field_2_T"] = True
+m.fixed["critical_temperature_K"] = True
+m.fixed["critical_field_2_T"] = True
+m.fixed["const_NC"] = True
 
-# m.fixed["const_NC"] = True
 
 """
 FIX = VARY
 """
+m.fixed["suscep_abs_50mT"] = True
 
-"""
-### cost  = cost_glob_init ###
-"""
+m.fixed["demag_fact"] = True
 
-m.fixed["a"] = True
-m.fixed["b"] = True
-###################################
-m.fixed["const_SC"] = True
-###################################
+## Backup json before unfix above 
 
+
+## Backup json before unfix above 
+
+
+
+
+## Backup json before unfix above 
+## Backup json before unfix above 
 m.fixed["lambda_L_200mT_nm"] = True
 
-m.fixed["dead_layer_nm"] = True
-m.fixed["lambda_L_100mT_nm"] = True
 
+m.fixed["const_SC"] = True
+m.fixed["lambda_L_200mT_nm"] = True
 
+#####################################
+#####################################
+#####################################
 m.fixed["lambda_L_50mT_nm"] = True
+m.fixed["suscep_abs_50mT"] = True
+
+#####################################
+m.fixed["lambda_L_150mT_nm"] = False
+m.fixed["suscep_abs_150mT"] = False
+
+m.fixed["lambda_L_125mT_nm"] = True
+m.fixed["suscep_abs_125mT"] = True
 
 m.fixed["lambda_L_110mT_nm"] = True
-m.fixed["lambda_L_125mT_nm"] = True
-m.fixed["lambda_L_150mT_nm"] = False
+m.fixed["suscep_abs_110mT"] = True
 
-###################################
-m.fixed["enhance_fact_110mT"] = True
-###################################
-m.fixed["enhance_fact_125mT"] = True
-###################################
-m.fixed["enhance_fact_150mT"] = False
-###################################
-m.fixed["enhance_fact_100mT"] = True
-
-###################################
-# Reset init value for lambda_200mT + change folder to Slope200
-###################################
-###################################
-# Might be overfit
-###################################
-m.fixed["enhance_fact_200mT"] = True
-###################################
-m.fixed["enhance_fact_50mT"] = True
-
-
+m.fixed["suscep_abs_200mT"] = True
+m.fixed["suscep_abs_100mT"] = True
+m.fixed["lambda_L_100mT_nm"] = True
+m.fixed["dead_layer_nm"] = True
+m.fixed["dipolar_field_T"] = True
+m.fixed["correlation_time_s"] = True
 
 
 """
@@ -1453,24 +1520,11 @@ Set limit manually
 m.limits["critical_temperature_K"] = (0.0,15.0)
 m.limits["critical_field_2_T"] = (0.0,None)
 
-m.limits["enhance_fact_50mT"] = (1.0,1.081)
-m.limits["enhance_fact_100mT"] = (1.0,1.081)
-m.limits["enhance_fact_110mT"] = (1.000,1.081)
-m.limits["enhance_fact_125mT"] = (1.000,1.081)
-m.limits["enhance_fact_150mT"] = (1.000,1.081)
-m.limits["enhance_fact_200mT"] = (1.000,1.081)
+m.limits["demag_fact"] = (0.0,1.000)
 
-m.limits["dead_layer_nm"] = (0.0,None)
 
-m.limits["lambda_L_50mT_nm"] = (0.0,None)
-m.limits["lambda_L_100mT_nm"] = (0.0,None)
-m.limits["lambda_L_110mT_nm"] = (0.0,None)
-m.limits["lambda_L_125mT_nm"] = (0.0,None)
-m.limits["lambda_L_150mT_nm"] = (0.0,None)
+
 m.limits["lambda_L_200mT_nm"] = (0.0,None)
-
-m.limits["a"] = (0.0,None)
-m.limits["b"] = (0.0,None)
 
 m.limits["const_SC"] = (0.0,50.0)
 m.limits["const_NC"] = (0.0,50.0)
@@ -1479,248 +1533,201 @@ m.limits["const_NC"] = (0.0,50.0)
 # m.limits["enhance_fact_mixed"] = (0.0,2.0)
 # m.limits["B_mixed_T"] = (0.0,None)
 
+#####################################
+#####################################
+m.limits["lambda_L_50mT_nm"] = (0.0,None)
+m.limits["suscep_abs_50mT"] = (0.0,1.000)
+#####################################
+m.limits["suscep_abs_150mT"] = (0.0,1.000)
+m.limits["lambda_L_150mT_nm"] = None#(0.0,None)
+
+m.limits["suscep_abs_125mT"] = (0.0,1.000)
+m.limits["lambda_L_125mT_nm"] = None#(0.0,None)
+
+m.limits["lambda_L_110mT_nm"] = None#(0.0,None)
+m.limits["suscep_abs_110mT"] = (0.0,1.000)
+
+m.limits["suscep_abs_200mT"] = (0.0,1.000)
+m.limits["suscep_abs_100mT"] = (0.0,1.000)
+m.limits["dead_layer_nm"] = None#(0.0,None)
+m.limits["lambda_L_100mT_nm"] = None#(0.0,None)
+m.limits["dipolar_field_T"] = None#(0.0,None)
+m.limits["correlation_time_s"] = None#(0.0,None)
+
+
+
 FIT_THE_DATA = False
 
 if FIT_THE_DATA:
     m.migrad()
     m.hesse()
     # m.minos()
+    # m.draw_mnmatrix()
 
-print(m)
-
-# minuit2json(m, "./Simple_vortex/Simple_Lor/Prop_ET_100/no_50mT/Flat200/SimpleLor_ETCSTVal_StandAlone_GlobalFits_AveLor.json")
-
-
-# """
-# #####################################################################
-# Construct Correlation Matrix Here for 'uncertainties' package input
-# #####################################################################
-# """
-
-# #### Create np.array for m.params where m.fixed == True
-# varied_keys = [key for key in m.parameters if m.fixed[key]==False]
-# N_fitparam = len(varied_keys)
-
-# # for key in varied_keys:
-# #     print("{} = {:.3f} +/- {:.3f} %".format(key, m.values[key], np.abs(m.errors[key]/m.values[key])*100))
+# print(m)
 
 
-# # from itertools import permutations as perm
-# # corr_matrix_keys = list(perm(varied_keys,2))
-# # print(corr_matrix_keys[0])
-
-# # corr_matrix = m.covariance.correlation()[corr_matrix_keys[0]]
-
-# corr_matrix = np.empty([N_fitparam,N_fitparam])
-
-# # for row_idx,row_key in enumerate(varied_keys):
-# #     for col_idx,col_key in enumerate(varied_keys):
-# #         corr_matrix[row_idx][col_idx] = 0.8#m.covariance.correlation()[row_key, col_key]
-# # print(corr_matrix)
-
-# corr_matrix[0][0] = corr_matrix[1][1] = 1.
-# corr_matrix[0][1] = corr_matrix[1][0] = 0.91079294
-# # print(corr_matrix)
+# minuit2json(m, "./Simple_vortex/Complex_Lor/ConstSC_zero/ET_100/no50/AveLor/ComplexLor_Flat200mT_cost(glob_init_ET_100)_Unbound.json")
 
 
-# import uncertainties as unc
-# from uncertainties.umath import *
+"""
+#########################################
+!!!! SLICE AND PLOT DATA + FIT !!!!
+#########################################
+"""
 
+E_EXTRAPOLATE_KEV = 2.0
 
 # """
-# Iterate varied params and append to list of string
-# Use join() method applied to the list of string to remove '' quote in between text
-# Dynamically create correlated variables given corr_matrix with uncertainties package
-# """
-# out_list_wunc = [s + '_wunc' for s in varied_keys]
-# out_text = ','.join(out_list_wunc)    
-
-    
-# in_list_wunc = ['(m.values[\''+str(p)+'\'],m.errors[\''+str(p)+'\'])' 
-#                 for p in varied_keys]    
-# in_text = ','.join(in_list_wunc)    
-
-# # to convert variable name (corr_matrix) into string
-# # see: https://stackoverflow.com/questions/1534504/convert-variable-name-to-string/15361037#15361037
-# from varname import nameof 
-# all_text = out_text + ' = unc.correlated_values_norm([' + in_text + '],' + nameof(corr_matrix) + ')'
-# exec(all_text)
-
-# # print(a_wunc, b_wunc)
-
-# variedparam_wunc = dict.fromkeys(varied_keys)
-# for key in varied_keys:
-#     dict_assign_txt = 'variedparam_wunc[\'%s\'] = %s_wunc' %(key,key)
-#     exec(dict_assign_txt)
-# print(unc.correlation_matrix([variedparam_wunc['a'],variedparam_wunc['b']]))
-
-
-
-
-
-
-
-
-
-
-
-# """
-# #########################################
-# !!!! SLICE AND PLOT DATA + FIT !!!!
-# #########################################
+# #####################################
+# Energy Scans: using mean(field, temp)
+# #####################################
 # """
 
-# E_EXTRAPOLATE_KEV = 2.0
+fig_SCDS_Escan, ax_SCDS_Escan = plt.subplots(
+    nrows=1,
+    ncols=1,
+    figsize=set_size(),#(10, 8),
+    constrained_layout=True,
+) 
 
-# # """
-# # #####################################
-# # Energy Scans: using mean(field, temp)
-# # #####################################
-# # """
+Temp_SCDS_Escan = np.array([4.5])
 
-# fig_SCDS_Escan, ax_SCDS_Escan = plt.subplots(
-#     nrows=1,
-#     ncols=1,
-#     figsize=set_size(),#(10, 8),
-#     constrained_layout=True,
-# ) 
-
-# Temp_SCDS_Escan = np.array([4.5])
-
-# # data_SCDS_plot = cost_used
+# data_SCDS_plot = cost_used
                
 
-# c_Escan = cm.rainbow(np.linspace(0,1,len(cost_used)))
-#             # [
-#             # 'red',
-#             # 'blue',
-#             # 'brown',
-#             # 'grey',
-#             # 'orange',
-#             # 'darkturquoise',
-#             # ]
-# #['r','b','k','purple']#
+c_Escan =['magenta','blue'] #cm.brg(np.linspace(0,0.85,len(cost_used)))
+            # [
+            # 'red',
+            # 'blue',
+            # 'brown',
+            # 'grey',
+            # 'orange',
+            # 'darkturquoise',
+            # ]
+#['r','b','k','purple']#
 
 
-# regr = linear_model.LinearRegression()
+regr = linear_model.LinearRegression()
 
-# for i, data_SCDS in enumerate(cost_used):
-#     data_SCDS = data_SCDS.sort_values(by="Impl. Energy (keV)")
-#     mean_temperature_K_SCDS = data_SCDS["Temperature (K)"].mean()
-#     mean_field_T_SCDS = data_SCDS["B0 Field (T)"].mean()
+for i, data_SCDS in enumerate(cost_used):
+    data_SCDS = data_SCDS.sort_values(by="Impl. Energy (keV)")
+    mean_temperature_K_SCDS = data_SCDS["Temperature (K)"].mean()
+    mean_field_T_SCDS = data_SCDS["B0 Field (T)"].mean()
 
-#     # print("Applied Field:{} mT, Temp:{} K\n".format(mean_field_T_SCDS*1e3,mean_temperature_K_SCDS))
-#     energies_keV_SCDS = np.linspace(
-#         np.min(data_SCDS["Impl. Energy (keV)"]),
-#         np.max(data_SCDS["Impl. Energy (keV)"]),
-#         num=N_FIT_POINTS,
-#     )
-#     # np.linspace(
-#     #     np.min(data_50_mT_SC_Depthscan["Impl. Energy (keV)"]) - 1,
-#     #     np.max(data_50_mT_SC_Depthscan["Impl. Energy (keV)"]) + 1,
-#     #     num=N_FIT_POINTS,
-#     # )
+    # print("Applied Field:{} mT, Temp:{} K\n".format(mean_field_T_SCDS*1e3,mean_temperature_K_SCDS))
+    energies_keV_SCDS = np.linspace(
+        np.min(data_SCDS["Impl. Energy (keV)"]),
+        np.max(data_SCDS["Impl. Energy (keV)"]),
+        num=N_FIT_POINTS,
+    )
+    # np.linspace(
+    #     np.min(data_50_mT_SC_Depthscan["Impl. Energy (keV)"]) - 1,
+    #     np.max(data_50_mT_SC_Depthscan["Impl. Energy (keV)"]) + 1,
+    #     num=N_FIT_POINTS,
+    # )
 
-#     ax_SCDS_Escan.errorbar(
-#         data_SCDS["Impl. Energy (keV)"],
-#         data_SCDS['1_T1_0'],
-#         # xerr=data_Escan["Energy Error (keV)"],
-#         yerr=data_SCDS['Error_ave 1_T1_0'],
-#         fmt="o",
-#         zorder=2,
-#         c= c_Escan[i],
-#         ecolor=lighten_color(c_Escan[i],0.4),
-#         # label='Data ({:.1f} mT)'.format(mean_field_T_SCDS*1e3)
-#         label='{:.0f} mT'.format(np.round(mean_field_T_SCDS*1e3),decimals=0),
-#         markersize=3.0,
-#     )
+    ax_SCDS_Escan.errorbar(
+        data_SCDS["Impl. Energy (keV)"],
+        data_SCDS['1_T1_0'],
+        # xerr=data_Escan["Energy Error (keV)"],
+        yerr=data_SCDS['Error_ave 1_T1_0'],
+        fmt="o",
+        zorder=2,
+        c= c_Escan[i],
+        # ecolor=lighten_color(c_Escan[i],0.4),
+        # label='Data ({:.1f} mT)'.format(mean_field_T_SCDS*1e3)
+        label='{:.0f} mT'.format(np.round(mean_field_T_SCDS*1e3),decimals=0),
+        markersize=3.0,
+    )
 
-#     """
-#     Plot Extrapolated 1/T1 vs E from fit parameters
-#     """    
-#     # par_SCDS = [
-#     #     mean_field_T_SCDS,
-#     #     m.values["dead_layer_nm"],
-#     #     m.values["lambda_L_50mT_nm"],
-#     #     m.values["lambda_L_100mT_nm"],
-#     #     m.values["lambda_L_110mT_nm"],
-#     #     m.values["lambda_L_125mT_nm"],
-#     #     m.values["lambda_L_150mT_nm"],
-#     #     m.values["lambda_L_200mT_nm"],
-#     #     m.values["a"],
-#     #     m.values["b"],
-#     #     mean_temperature_K_SCDS,
-#     #     m.values["critical_temperature_K"],
-#     #     m.values["critical_field_2_T"],
-#     #     m.values["enhance_fact_50mT"],
-#     #     m.values["enhance_fact_100mT"],
-#     #     m.values["enhance_fact_110mT"],
-#     #     m.values["enhance_fact_125mT"],
-#     #     m.values["enhance_fact_150mT"],
-#     #     m.values["enhance_fact_200mT"],
-#     #     m.values["const_SC"],
-#     #     m.values["const_NC"],
+    # """
+    # Plot Extrapolated 1/T1 vs E from fit parameters
+    # """    
+    # par_SCDS = [
+    #     mean_field_T_SCDS,
+    #     m.values["dead_layer_nm"],
+    #     m.values["lambda_L_50mT_nm"],
+    #     m.values["lambda_L_100mT_nm"],
+    #     m.values["lambda_L_110mT_nm"],
+    #     m.values["lambda_L_125mT_nm"],
+    #     m.values["lambda_L_150mT_nm"],
+    #     m.values["lambda_L_200mT_nm"],
+    #     m.values["dipolar_field_T"],
+    #     m.values["correlation_time_s"],
+    #     mean_temperature_K_SCDS,
+    #     m.values["critical_temperature_K"],
+    #     m.values["critical_field_2_T"],
+    #     m.values["suscep_abs_50mT"],
+    #     m.values["suscep_abs_100mT"],
+    #     m.values["suscep_abs_110mT"],
+    #     m.values["suscep_abs_125mT"],
+    #     m.values["suscep_abs_150mT"],
+    #     m.values["suscep_abs_200mT"],
+    #     m.values["const_SC"],
+    #     m.values["const_NC"],
 
-#     #     # m.values["B_noscreen_T"],
-#     #     # m.values["enhance_fact_mixed"],
-#     #     # m.values["B_mixed_T"],
-#     # ]
+    #     # m.values["B_noscreen_T"],
+    #     # m.values["enhance_fact_mixed"],
+    #     # m.values["B_mixed_T"],
+        
+    #     m.values["demag_fact"],
+        
+    # ]
 
-#     # ax_SCDS_Escan.plot(
-#     #     energies_keV_SCDS,
+    # ax_SCDS_Escan.plot(
+    #     energies_keV_SCDS,
 
-#     #     dac(energies_keV_SCDS, *par_SCDS),
-#     #     "-",
-#     #     zorder=1,
-#     #     color = c_Escan[i],
-#     #     # label='SCDS Fit at {:.1f} mT'.format(mean_field_T_SCDS*1e3)
-#     #     # label='Fit ({:.0f} mT)'.format(mean_field_T_SCDS*1e3)
-#     # )
+    #     dac(energies_keV_SCDS, *par_SCDS),
+    #     "-",
+    #     zorder=1,
+    #     color = c_Escan[i],
+    #     # label='SCDS Fit at {:.1f} mT'.format(mean_field_T_SCDS*1e3)
+    #     # label='Fit ({:.0f} mT)'.format(mean_field_T_SCDS*1e3)
+    # )
 
-#     """
-#     Plot Linear Regression Instead
-#     """
-#     nrow =  data_SCDS["Impl. Energy (keV)"].shape[0]
+    """
+    Plot Linear Regression Instead
+    """
+    nrow =  data_SCDS["Impl. Energy (keV)"].shape[0]
 
-#     regr.fit(
-#                 data_SCDS["Impl. Energy (keV)"].values.reshape(nrow,1),
-#                 data_SCDS['1_T1_0'].values.reshape(nrow,1)
-#             )
+    regr.fit(
+                data_SCDS["Impl. Energy (keV)"].values.reshape(nrow,1),
+                data_SCDS['1_T1_0'].values.reshape(nrow,1)
+            )
     
-#     # y_reg = regr.predict(energies_keV_SCDS.reshape(energies_keV_SCDS.size,1))
-#     # print(np.shape(energies_keV_SCDS), np.shape(y_reg))
+    # y_reg = regr.predict(energies_keV_SCDS.reshape(energies_keV_SCDS.size,1))
+    # print(np.shape(energies_keV_SCDS), np.shape(y_reg))
     
-#     ax_SCDS_Escan.plot(
-#         energies_keV_SCDS,
-#         regr.predict(
-#                         energies_keV_SCDS.reshape(
-#                                     energies_keV_SCDS.size,1
-#                                     )
-#                     ),
-#         "--",
-#         zorder=1,
-#         color = c_Escan[i],
-#     )
+    ax_SCDS_Escan.plot(
+        energies_keV_SCDS,
+        regr.predict(
+                        energies_keV_SCDS.reshape(
+                                    energies_keV_SCDS.size,1
+                                    )
+                    ),
+        "--",
+        zorder=1,
+        color = c_Escan[i],
+    )
 
-# ax_SCDS_Escan.legend(
-#                     title=r'$B_{app}$[mT]:',
-#                     bbox_to_anchor=(1.0,1.0),
-#                     # loc='best'
-#                     )
+ax_SCDS_Escan.legend(
+                    title=r'$\rm B_{a}$[mT]:',
+                    bbox_to_anchor=(1.0,1.0),
+                    # loc='best'
+                    )
 
-# # ax_SCDS_Escan.set_xlabel('Impl. Energy [keV]', fontsize=12)
-# # ax_SCDS_Escan.set_ylabel(r'$\frac{1}{T_1} [s^{-1}]$', fontsize=12)
+# ax_SCDS_Escan.set_xlabel('Impl. Energy [keV]', fontsize=12)
+# ax_SCDS_Escan.set_ylabel(r'$\frac{1}{T_1} [s^{-1}]$', fontsize=12)
 
-# ax_SCDS_Escan.set_xlabel('Impl. Energy [keV]')#, fontsize=12)
-# ax_SCDS_Escan.set_ylabel(r'$1/T_1$ [s$^{-1}$]')#, fontsize=12)
+ax_SCDS_Escan.set_xlabel('Impl. Energy [keV]')#, fontsize=12)
+ax_SCDS_Escan.set_ylabel(r'$\rm 1/T_1$ [s$^{-1}$]')#, fontsize=12)
 
+ax_SCDS_Escan.set_ylim([0.8+1.0, 5.0+1.0])
 
-# # fig_SCDS_Escan.savefig('NbBase_RelaxRate-vs-E.pdf',dpi=600)
-# # fig_SCDS_Escan.savefig('NbBase_RelaxRate-vs-E_Flat200_GlobFits.pdf',dpi=600)
-
-
-
-
+# fig_SCDS_Escan.savefig('NbBase_RelaxRate-vs-E_Flat200_ProjFits_FixedScale_sciencestyle.pdf',dpi=600)
+# fig_SCDS_Escan.savefig('NbBase_RelaxRate-vs-E_Flat200_ProjFits_FixedScale.pdf',dpi=600)
+fig_SCDS_Escan.savefig('NbBase_NormalState_sciencestyle.pdf',dpi=600)
 
 
 
@@ -1729,155 +1736,100 @@ print(m)
 # # """
 # # ########################################
 # # #### Plot 1/T1 vs B-ave ####
+# # ET Note-to-self: use scipy.quadvec here
 # # ########################################
 # # """
 
 
-# # fig_RelaxVsBave, ax_RelaxVsBave = plt.subplots(
-# #                                     nrows=1,
-# #                                     ncols=1,
-# #                                     figsize=set_size(
-# #                                                         # width='thesis',   
-# #                                                         subplots=(1,1),
-# #                                                         ),
-# #                                     constrained_layout=True,
-# #                                     # sharex='col',
-# #                                 )
+# # # # fig_RelaxVsBave, ax_RelaxVsBave = plt.subplots(
+# # # #                                     nrows=1,
+# # # #                                     ncols=1,
+# # # #                                     figsize=set_size(
+# # # #                                                         # width='thesis',   
+# # # #                                                         subplots=(1,1),
+# # # #                                                         ),
+# # # #                                     constrained_layout=True,
+# # # #                                     # sharex='col',
+# # # #                                 )
 
 
-# # # field_mT_B_plot = np.array([
-# # #                     100,
-# # #                     110,
-# # #                     125,
-# # #                     150,
-# # #                     200,
-# # #                 ])
+# # # # field_mT_B_plot = np.array([
+# # # #                     100,
+# # # #                     110,
+# # # #                     125,
+# # # #                     150,
+# # # #                     200,
+# # # #                 ])
 
-# # c_B_plot = cm.rainbow(np.linspace(0,1,len(cost_used)))
-# # # [
-# # #             'blue',
-# # #             'brown',
-# # #             'grey',
-# # #             'orange',
-# # #             'darkturquoise',                             
-# # # ]
+# # # c_B_plot = cm.rainbow(np.linspace(0,1,len(cost_used)))
+# # # # [
+# # # #             'blue',
+# # # #             'brown',
+# # # #             'grey',
+# # # #             'orange',
+# # # #             'darkturquoise',                             
+# # # # ]
 
 
 
-# # # for idx_b, data_df in enumerate(data_list_df_B_plot): 
-# # for idx_b, data_df in enumerate(cost_used): 
+# # # # for idx_b, data_df in enumerate(data_list_df_B_plot): 
+# # # for idx_b, data_df in enumerate(cost_used): 
     
-# #     mean_temperature_K_SCDS = data_df["Temperature (K)"].mean()
+# # #     mean_temperature_K_SCDS = data_df["Temperature (K)"].mean()
     
-# #     mean_applied_field_T = data_df["B0 Field (T)"].mean()
-# #     mean_applied_field_mT = np.round(mean_applied_field_T*1e3,decimals=0) 
+# # #     mean_applied_field_T = data_df["B0 Field (T)"].mean()
+# # #     mean_applied_field_mT = np.round(mean_applied_field_T*1e3,decimals=0) 
 
-# #     E_data_arr = data_df["Impl. Energy (keV)"]#np.sort(pd.unique(data_df["Impl. Energy (keV)"].round(decimals=0)))
-# #     B_minuit_ave_mT = np.empty(E_data_arr.size)
+# # #     E_data_arr = data_df["Impl. Energy (keV)"]#np.sort(pd.unique(data_df["Impl. Energy (keV)"].round(decimals=0)))
+# # #     B_minuit_ave_mT = np.empty(E_data_arr.size)
     
+# # #     """
+# # #     Replace for e_keV with scipy.quadvec
+# # #     """
+# # #     for idx_e,e_keV in enumerate(E_data_arr):
+# # #         ### Calculate B-ave ###
+# # #         def B_x_rho(z: float) -> float:
+# # #             # B = np.full_like(z,B_z_London_mT[0])
+# # #             B = dac.london_model(
+# # #                                             z,
+# # #                                             mean_applied_field_mT*
+# # #                                             (1/(1-m.values["demag_fact"]*m.values["suscep_abs_{:.0f}mT".format(mean_applied_field_mT)])),
+# # #                                             # convert to Tesla for B-averaging
+# # #                                             m.values["dead_layer_nm"],
+# # #                                             m.values["lambda_L_{:.0f}mT_nm".format(mean_applied_field_mT)],
+# # #                                         )
 
-# #     for idx_e,e_keV in enumerate(E_data_arr):
-# #         ### Calculate B-ave ###
-# #         def B_x_rho(z: float) -> float:
-# #             # B = np.full_like(z,B_z_London_mT[0])
-# #             B = dac.london_model(
-# #                                             z,
-# #                                             mean_applied_field_mT*m.values["enhance_fact_{:.0f}mT".format(mean_applied_field_mT)],
-# #                                             # convert to Tesla for B-averaging
-# #                                             m.values["dead_layer_nm"],
-# #                                             m.values["lambda_L_{:.0f}mT_nm".format(mean_applied_field_mT)],
-# #                                         )
+# # #             rho = dac.stopping_distribution_e(z, e_keV)
+# # #             return B * rho
 
-# #             rho = dac.stopping_distribution_e(z, e_keV)
-# #             return B * rho
+# # #         # do the numeric integration using adaptive Gaussian quadrature
+# # #         # https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.quad.html
+# # #         # B_fit_ave_mT[idx_e] = 
+# # #         B_ave = integrate.quad(
+# # #             B_x_rho,
+# # #             0.0,  # lower integration limit
+# # #             max(  # upper integration limit
+# # #                 np.max(dac.z_max_1(e_keV)), np.max(dac.z_max_2(e_keV))
+# # #             ),
+# # #             epsabs=np.sqrt(np.finfo(float).eps),  # absolute error tolerance
+# # #             epsrel=np.sqrt(np.finfo(float).eps),  # relative error tolerance
+# # #             limit=np.iinfo(np.int32).max,  # maximum number of subintervals
+# # #             points=[  # potential singularities/discontinuities in the integrand
+# # #                 0.0,  #
+# # #                 5.0,  # 5 nm Nb2O5 surface oxide layer
+# # #                 dac.z_max_1(e_keV),
+# # #                 dac.z_max_2(e_keV),
+# # #                 m.values["dead_layer_nm"],
+# # #             ],
+# # #         )
+# # #         B_minuit_ave_mT[idx_e] = B_ave[0]
 
-# #         # do the numeric integration using adaptive Gaussian quadrature
-# #         # https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.quad.html
-# #         # B_fit_ave_mT[idx_e] = 
-# #         B_ave = integrate.quad(
-# #             B_x_rho,
-# #             0.0,  # lower integration limit
-# #             max(  # upper integration limit
-# #                 np.max(dac.z_max_1(e_keV)), np.max(dac.z_max_2(e_keV))
-# #             ),
-# #             epsabs=np.sqrt(np.finfo(float).eps),  # absolute error tolerance
-# #             epsrel=np.sqrt(np.finfo(float).eps),  # relative error tolerance
-# #             limit=np.iinfo(np.int32).max,  # maximum number of subintervals
-# #             points=[  # potential singularities/discontinuities in the integrand
-# #                 0.0,  #
-# #                 5.0,  # 5 nm Nb2O5 surface oxide layer
-# #                 dac.z_max_1(e_keV),
-# #                 dac.z_max_2(e_keV),
-# #                 m.values["dead_layer_nm"],
-# #             ],
-# #         )
-# #         B_minuit_ave_mT[idx_e] = B_ave[0]
-
-# #     # print(
-# #     #         'size check:',
-# #     #       np.shape(data_df['1_T1_0']), 
-# #     #       np.shape(B_minuit_ave_mT),
-# #     #       np.shape(E_data_arr),
-# #     #       )
-
-# #     #### Plot 1/T1 vs E from 'a' and 'b'
-# #     ax_RelaxVsBave.errorbar(
-# #                                 B_minuit_ave_mT,
-# #                                 data_df['1_T1_0'],
-# #                                 # xerr=data_Escan["Energy Error (keV)"],
-# #                                 yerr=data_df['Error_ave 1_T1_0'],
-# #                                 fmt="o",
-# #                                 zorder=2,
-# #                                 c= c_B_plot[idx_b],
-# #                                 ecolor=lighten_color(c_B_plot[idx_b],0.4),
-# #                                 # label='Data ({:.1f} mT)'.format(mean_field_T_SCDS*1e3)
-# #                                 label='{:.0f} mT'.format(mean_applied_field_mT),
-# #                                 markersize=3.0,
-# #                             )
-
-
-
-
-# #     """
-# #     Plot <B> vs E from data points + minuit param
-# #     """
-# #     B_ave_fit_arr = np.linspace(0,250,100)
-# #     lor_vs_Bave = dac.simpler_lorentzian(
-# #                                             B_ave_fit_arr*1e-3,
-# #                                             m.values["a"],
-# #                                             m.values["b"]
-# #                                         )
-    
-# #     # lor_wunc = dac.simpler_lorentzian(
-# #     #                                         B_ave_fit_arr*1e-3,
-# #     #                                         a_wunc,
-# #     #                                         b_wunc
-# #     #                                     )
-    
-# #     # lor_wunc_mean = np.empty(lor_wunc.size)
-# #     # lor_wunc_max = np.empty(lor_wunc.size)
-# #     # lor_wunc_min = np.empty(lor_wunc.size)
-
-# #     # for i,val in enumerate(lor_wunc):
-# #     #     lor_wunc_mean[i] = val.n
-# #     #     lor_wunc_max[i] = val.n + val.s
-# #     #     lor_wunc_min[i] = val.n - val.s   
-
-# #     ax_RelaxVsBave.plot(
-# #                     B_ave_fit_arr,
-# #                     lor_vs_Bave,#lor_wunc_mean,
-# #                     '-',
-# #                     color = 'k',#c_B_plot[idx_b],
-# #                     # label='{:.0f} mT'.format(np.round(field_mT_B_plot[idx_b]),decimals=0),
-# #                     )    
-    
-# #     # ax_RelaxVsBave.fill_between(
-# #     #     B_ave_fit_arr,
-# #     #     lor_wunc_min,
-# #     #     lor_wunc_max,
-# #     #     color='lightgray',
-# #     # )
-    
+# # #     # print(
+# # #     #         'size check:',
+# # #     #       np.shape(data_df['1_T1_0']), 
+# # #     #       np.shape(B_minuit_ave_mT),
+# # #     #       np.shape(E_data_arr),
+# # #     #       )
 
 
 
@@ -1888,56 +1840,63 @@ print(m)
 
 
 
-# # # """
-# # # ###########################################
-# # # ## Plot B(z) from London Model and <B>(E)
-# # # ########################################
-# # # """
-
-"""
-Averaging Parameter
-"""
-
-E_fit_arr = np.linspace(E_min_keV_fit, E_max_keV_fit, N_FIT_POINTS)
-z_max = dac.z_max_2(E_max_keV_fit)
-
-x_GL_nm_arr, w_GL_arr = GL_Quad(N_FIT_POINTS, 0.0, x_max_nm_plot)#z_max) 
 
 
-# data_list_df_B_plot = [
-#                     data_100_mT_SC_Depthscan,
-#                     data_110_mT_SC_Depthscan,
-#                     data_125_mT_SC_Depthscan, #not working
-#                     data_150_mT_SC_Depthscan.loc[
-#                                                     data_150_mT_SC_Depthscan["Impl. Energy (keV)"] > energy_keV_cutoff_vortex
-#                     ], #weird
-#                     data_200_mT_SC_Depthscan.loc[
-#                                                     data_200_mT_SC_Depthscan["Impl. Energy (keV)"] > energy_keV_cutoff_vortex
-#                     ], #norm value is crazy
-#                 ]
 
-field_mT_B_plot = np.array([
-                    100,
-                    110,
-                    125,
-                    150,
-                    200,
-                ])
 
-c_B_plot = cm.brg(np.linspace(0,0.85,len(field_mT_B_plot)))
-# [
-#             'blue',
-#             'brown',
-#             'grey',
-#             'orange',
-#             'darkturquoise',                             
-# ]
+
+
+
+# # # # """
+# # # # ###########################################
+# # # # ## Plot B(z) from London Model and <B>(E)
+# # # # ########################################
+# # # # """
 
 # """
-# ######################################
-# ## Plot B(z) from London Model from fit params
-# ######################################
+# Averaging Parameter
 # """
+
+# E_fit_arr = np.linspace(E_min_keV_fit, E_max_keV_fit, N_FIT_POINTS)
+# z_max = dac.z_max_2(E_max_keV_fit)
+
+# x_GL_nm_arr, w_GL_arr = GL_Quad(N_FIT_POINTS, 0.0, x_max_nm_plot)#z_max) 
+
+
+# # data_df_B_plot = [
+# #                     data_100_mT_SC_Depthscan,
+# #                     data_110_mT_SC_Depthscan,
+# #                     data_125_mT_SC_Depthscan, #not working
+# #                     data_150_mT_SC_Depthscan.loc[
+# #                                                     data_150_mT_SC_Depthscan["Impl. Energy (keV)"] > energy_keV_cutoff_vortex
+# #                     ], #weird
+# #                     data_200_mT_SC_Depthscan.loc[
+# #                                                     data_200_mT_SC_Depthscan["Impl. Energy (keV)"] > energy_keV_cutoff_vortex
+# #                     ], #norm value is crazy
+# #                 ]
+
+# field_mT_B_plot = np.array([
+#                     100,
+#                     110,
+#                     125,
+#                     150,
+#                     200,
+#                 ])
+
+# c_B_plot = cm.brg(np.linspace(0,0.85,len(cost_used)))#cm.brg(np.linspace(0,0.85,len(cost_used)))
+# # [
+# #             'blue',
+# #             'brown',
+# #             'grey',
+# #             'orange',
+# #             'darkturquoise',                             
+# # ]
+
+# # """
+# # ######################################
+# # ## Plot B(z) from London Model from fit params
+# # ######################################
+# # """
 
 # fig_Bz_London, ax_Bz_London = plt.subplots(
 #                                     nrows=1,
@@ -1950,16 +1909,16 @@ c_B_plot = cm.brg(np.linspace(0,0.85,len(field_mT_B_plot)))
 #                                     # sharex='col',
 #                                 )
 
-fig_BaveVsE, ax_BaveVsE = plt.subplots(
-                                    nrows=1,
-                                    ncols=1,
-                                    figsize=set_size(
-                                                        # width='thesis',   
-                                                        subplots=(1,1),
-                                                        ),
-                                    constrained_layout=True,
-                                    # sharex='col',
-                                )
+# # fig_BaveVsE, ax_BaveVsE = plt.subplots(
+# #                                     nrows=1,
+# #                                     ncols=1,
+# #                                     figsize=set_size(
+# #                                                         # width='thesis',   
+# #                                                         subplots=(1,1),
+# #                                                         ),
+# #                                     constrained_layout=True,
+# #                                     # sharex='col',
+# #                                 )
 
 # # fig_RelaxVsBave, ax_RelaxVsBave = plt.subplots(
 # #                                     nrows=1,
@@ -1980,144 +1939,143 @@ fig_BaveVsE, ax_BaveVsE = plt.subplots(
 # #                                 )
 
 
-B_z_London_T_all = []
-B_ave_B_arr = []
-A_minuit_param = []
-B_minuit_param = []
+# B_z_London_T_all = []
+# B_ave_B_arr = []
+# A_minuit_param = []
+# B_minuit_param = []
 
-for idx_b, data_df in enumerate(data_list_df_B_plot): 
+# for idx_b, data_df in enumerate(cost_used): 
 
-    mean_temperature_K_SCDS = data_df["Temperature (K)"].mean()
-    mean_field_T_SCDS = data_df["B0 Field (T)"].mean()
+#     mean_temperature_K_SCDS = data_df["Temperature (K)"].mean()
+#     mean_field_T_SCDS = data_df["B0 Field (T)"].mean()
 
-    mean_depth_nm = []
+#     mean_depth_nm = []
 
-    """
-    Load json files for each SCDS
-    """
-    global_chi2_indiv = LeastSquares3D(
-        model=fcn3d,
-        x=data_df["Temperature (K)"],
-        y=data_df["Impl. Energy (keV)"],
-        z=data_df["B0 Field (T)"],
-        value=data_df['1_T1_0'],
-        error=data_df[['Error_ave 1_T1_0']],
-        verbose=True,
-    )
+#     """
+#     Load json files for each SCDS
+#     """
+#     global_chi2_indiv = LeastSquares3D(
+#         model=fcn3d,
+#         x=data_df["Temperature (K)"],
+#         y=data_df["Impl. Energy (keV)"],
+#         z=data_df["B0 Field (T)"],
+#         value=data_df['1_T1_0'],
+#         error=data_df[['Error_ave 1_T1_0']],
+#         verbose=True,
+#     )
 
-    # with open("Bobs_ET-ReFit_CSTDemag_Bob-SCDS_{:.0f}mT.json".format(field_mT_B_plot[idx_b]), "r") as file_handle:
-    with open("./Simple_vortex/Simple_Lor/Prop_ET_100/no_50mT/Flat200/SimpleLor_ETCSTVal_StandAlone_GlobalFits_AveLor.json", "r") as file_handle:
-        old_results = json.load(file_handle)
+#     with open("./Simple_vortex/Complex_Lor/ConstSC_zero/ET_100/no50/AveLor/Unbound_Hesse/ComplexLor_Flat200mT_cost(glob_init_ET_100)_Unbound_Fit(100,200,110,125,150)-BEST.json", "r") as file_handle:
+#         old_results = json.load(file_handle)
 
-    m = Minuit(global_chi2_indiv, **old_results["values"])
+#     m = Minuit(global_chi2_indiv, **old_results["values"])
 
-    # json2minuit(m, "Bobs_ET-ReFit_CSTDemag_Bob-SCDS_{:.0f}mT.json".format(field_mT_B_plot[idx_b]))
-    json2minuit(m, "./Simple_vortex/Simple_Lor/Prop_ET_100/no_50mT/Flat200/SimpleLor_ETCSTVal_StandAlone_GlobalFits_AveLor.json")
+#     json2minuit(m, "./Simple_vortex/Complex_Lor/ConstSC_zero/ET_100/no50/AveLor/Unbound_Hesse/ComplexLor_Flat200mT_cost(glob_init_ET_100)_Unbound_Fit(100,200,110,125,150)-BEST.json")
 
 
-    A_minuit_param.append(m.values['a'])
-    B_minuit_param.append(m.values['b'])
+#     # A_minuit_param.append(m.values['a'])
+#     # B_minuit_param.append(m.values['b'])
 
 
-    """
-    Recreate B(z) London from fit parameters
-    """
-    B_z_London_mT = dac.london_model(
-                                            x_GL_nm_arr,
-                                            # field_mT_B_plot[idx_b]*m.values["enhance_fact"],# convert to Tesla for B-averaging
-                                            field_mT_B_plot[idx_b]*m.values["enhance_fact_%imT" %(field_mT_B_plot[idx_b])],# convert to Tesla for B-averaging
+#     """
+#     Recreate B(z) London from fit parameters
+#     """
+#     enhance_fact = 1/(1-m.values["demag_fact"]*m.values["suscep_abs_%imT" %(field_mT_B_plot[idx_b])])
+#     B_z_London_mT = dac.london_model(
+#                                         x_GL_nm_arr,
+#                                         # field_mT_B_plot[idx_b]*m.values["enhance_fact"],# convert to Tesla for B-averaging
+#                                         field_mT_B_plot[idx_b]*enhance_fact,# convert to Tesla for B-averaging
 
-                                            m.values["dead_layer_nm"],
-                                            m.values["lambda_L_%imT_nm" %(field_mT_B_plot[idx_b])],
-                                        )
+#                                         m.values["dead_layer_nm"],
+#                                         m.values["lambda_L_%imT_nm" %(field_mT_B_plot[idx_b])],
+#                                     )
 
-    B_z_London_T_all.append(B_z_London_mT)
+#     B_z_London_T_all.append(B_z_London_mT)
 
-    # ax_Bz_London.plot(
-    #                 x_GL_nm_arr, 
-    #                 B_z_London_mT,
-    #                 "-",
-    #                 zorder=1,
-    #                 color = c_B_plot[idx_b],
-    #                 label='{:.0f}'.format(np.round(field_mT_B_plot[idx_b]),decimals=0),
-    #                 )
-    # ax_Bz_London.axvspan(
-    #                         xmin=0,
-    #                         xmax=m.values["dead_layer_nm"],
-    #                         color='grey',
-    #                         alpha=0.1,
-    #                         )
+#     ax_Bz_London.plot(
+#                     x_GL_nm_arr, 
+#                     B_z_London_mT,
+#                     "-",
+#                     zorder=1,
+#                     color = c_B_plot[idx_b],
+#                     label='{:.0f}'.format(np.round(field_mT_B_plot[idx_b]),decimals=0),
+#                     )
+#     ax_Bz_London.axvspan(
+#                             xmin=0,
+#                             xmax=m.values["dead_layer_nm"],
+#                             color='grey',
+#                             alpha=0.1,
+#                             )
     
 
-    """
-    #############################
-    Plot B-ave vs E
-    #############################
-    """
+#     """
+#     #############################
+#     Plot B-ave vs E
+#     #############################
+#     """
 
-    # B_data_ave_mT = []
-    B_data_ave_mT = np.sqrt((m.values["a"]/data_df["1_T1_0"]) - m.values["b"])
-    B_fit_ave_mT = np.empty(E_fit_arr.size)
+#     # # B_data_ave_mT = []
+#     # B_data_ave_mT = np.sqrt((m.values["a"]/data_df["1_T1_0"]) - m.values["b"])
+#     # B_fit_ave_mT = np.empty(E_fit_arr.size)
 
-    #### for plotting B-ave vs E ####
-    for idx_e,e_keV in enumerate(E_fit_arr):
-        def B_x_rho(z: float) -> float:
-            # B = np.full_like(z,B_z_London_mT[0])
-            B = dac.london_model(
-                                            z,
-                                            field_mT_B_plot[idx_b]*m.values["enhance_fact_%imT" %field_mT_B_plot[idx_b]],# convert to Tesla for B-averaging
-                                            m.values["dead_layer_nm"],
-                                            m.values["lambda_L_%imT_nm" %field_mT_B_plot[idx_b]],
-                                        )
+#     # #### for plotting B-ave vs E ####
+#     # for idx_e,e_keV in enumerate(E_fit_arr):
+#     #     def B_x_rho(z: float) -> float:
+#     #         # B = np.full_like(z,B_z_London_mT[0])
+#     #         B = dac.london_model(
+#     #                                         z,
+#     #                                         field_mT_B_plot[idx_b]*m.values["enhance_fact_%imT" %field_mT_B_plot[idx_b]],# convert to Tesla for B-averaging
+#     #                                         m.values["dead_layer_nm"],
+#     #                                         m.values["lambda_L_%imT_nm" %field_mT_B_plot[idx_b]],
+#     #                                     )
 
-            rho = dac.stopping_distribution_e(z, e_keV)
-            return B * rho
+#     #         rho = dac.stopping_distribution_e(z, e_keV)
+#     #         return B * rho
 
-        # do the numeric integration using adaptive Gaussian quadrature
-        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.quad.html
-        # B_fit_ave_mT[idx_e] = 
-        B_ave = integrate.quad(
-            B_x_rho,
-            0.0,  # lower integration limit
-            max(  # upper integration limit
-                np.max(dac.z_max_1(e_keV)), np.max(dac.z_max_2(e_keV))
-            ),
-            epsabs=np.sqrt(np.finfo(float).eps),  # absolute error tolerance
-            epsrel=np.sqrt(np.finfo(float).eps),  # relative error tolerance
-            limit=np.iinfo(np.int32).max,  # maximum number of subintervals
-            points=[  # potential singularities/discontinuities in the integrand
-                0.0,  #
-                5.0,  # 5 nm Nb2O5 surface oxide layer
-                dac.z_max_1(e_keV),
-                dac.z_max_2(e_keV),
-                m.values["dead_layer_nm"],
-            ],
-        )
-        B_fit_ave_mT[idx_e] = B_ave[0]
+#     #     # do the numeric integration using adaptive Gaussian quadrature
+#     #     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.quad.html
+#     #     # B_fit_ave_mT[idx_e] = 
+#     #     B_ave = integrate.quad(
+#     #         B_x_rho,
+#     #         0.0,  # lower integration limit
+#     #         max(  # upper integration limit
+#     #             np.max(dac.z_max_1(e_keV)), np.max(dac.z_max_2(e_keV))
+#     #         ),
+#     #         epsabs=np.sqrt(np.finfo(float).eps),  # absolute error tolerance
+#     #         epsrel=np.sqrt(np.finfo(float).eps),  # relative error tolerance
+#     #         limit=np.iinfo(np.int32).max,  # maximum number of subintervals
+#     #         points=[  # potential singularities/discontinuities in the integrand
+#     #             0.0,  #
+#     #             5.0,  # 5 nm Nb2O5 surface oxide layer
+#     #             dac.z_max_1(e_keV),
+#     #             dac.z_max_2(e_keV),
+#     #             m.values["dead_layer_nm"],
+#     #         ],
+#     #     )
+#     #     B_fit_ave_mT[idx_e] = B_ave[0]
         
-    ax_BaveVsE.plot(
-                    data_df["Impl. Energy (keV)"],
-                    B_data_ave_mT,
-                    'o',
-                    color = c_B_plot[idx_b],
-                    markersize=3.0,
-                    label='{:.0f}'.format(np.round(field_mT_B_plot[idx_b]),decimals=0),
-                    )    
+#     # ax_BaveVsE.plot(
+#     #                 data_df["Impl. Energy (keV)"],
+#     #                 B_data_ave_mT,
+#     #                 'o',
+#     #                 color = c_B_plot[idx_b],
+#     #                 markersize=3.0,
+#     #                 label='{:.0f}'.format(np.round(field_mT_B_plot[idx_b]),decimals=0),
+#     #                 )    
     
-    ax_BaveVsE.plot(
-                    E_fit_arr,
-                    B_fit_ave_mT,
-                    '--',
-                    color = c_B_plot[idx_b],
-                    # label='{:.0f} mT'.format(np.round(field_mT_B_plot[idx_b]),decimals=0),
-                    )    
+#     # ax_BaveVsE.plot(
+#     #                 E_fit_arr,
+#     #                 B_fit_ave_mT,
+#     #                 '-',
+#     #                 color = c_B_plot[idx_b],
+#     #                 # label='{:.0f} mT'.format(np.round(field_mT_B_plot[idx_b]),decimals=0),
+#     #                 )    
     
-    # ax_BaveVsE.axvspan(
-    #                         xmin=0,
-    #                         xmax=range_to_erg(m.values["dead_layer_nm"]),
-    #                         color='grey',
-    #                         alpha=0.1,
-    #                         )
+#     # ax_BaveVsE.axvspan(
+#     #                         xmin=0,
+#     #                         xmax=range_to_erg(m.values["dead_layer_nm"]),
+#     #                         color='grey',
+#     #                         alpha=0.1,
+#     #                         )
     
 #     """
 #     ########################################
@@ -2242,26 +2200,20 @@ for idx_b, data_df in enumerate(data_list_df_B_plot):
 # PLOT B-AVE
 # ############
 # """
-ax_BaveVsE.legend( title=r'$\rm B_{a}$[mT]:',
-               bbox_to_anchor=(1.0,1.0))
+# # ax_BaveVsE.legend( title=r'$B_{app}$[mT]:',
+# #                bbox_to_anchor=(1.0,1.0))
 
-# ax_Lorentz_recheck.set_ylabel(r'$1/T_1 [s^{-1}]$')
+# # # ax_Lorentz_recheck.set_ylabel(r'$1/T_1 [s^{-1}]$')
 
-ax_BaveVsE.set_xlabel('Impl. Energy [keV]')
-ax_BaveVsE.set_xlim([E_min_keV_plot, E_max_keV_plot])
-ax_BaveVsE.set_ylim([B_min_mT_plot, B_max_mT_plot])
+# # ax_BaveVsE.set_xlabel('Impl. Energy [keV]')
+# # ax_BaveVsE.set_xlim([E_min_keV_plot, E_max_keV_plot])
+# # ax_BaveVsE.set_ylim([B_min_mT_plot, B_max_mT_plot])
 
-ax_BaveVsE.set_ylabel(r'$\rm \langle B \rangle$ [mT]')
-# fig_BaveVsE.suptitle('Average Analysis for B_London')
+# # ax_BaveVsE.set_ylabel(r'$\langle B \rangle$ [mT]')
+# # # fig_BaveVsE.suptitle('Average Analysis for B_London')
 
-fig_BaveVsE.savefig('NbBase_BAve-vs-E_NSR_sciencestyle.pdf',dpi=600)
-# fig_BaveVsE.savefig('NbBase_BAve-vs-E_NSR.pdf',dpi=600)
-
-
-
-
-
-
+# # # fig_BaveVsE.savefig('NbBase_BAve-vs-E.pdf',dpi=600)
+# # fig_BaveVsE.savefig('NbBase_BAve-vs-E_wDead.pdf',dpi=600)
 
 
 # """
@@ -2286,12 +2238,6 @@ fig_BaveVsE.savefig('NbBase_BAve-vs-E_NSR_sciencestyle.pdf',dpi=600)
 
 # # # fig_BaveVsE.savefig('B_Average_analysis_fixed.pdf')
 
-
-
-
-
-
-
     
 # """
 # #############
@@ -2301,7 +2247,7 @@ fig_BaveVsE.savefig('NbBase_BAve-vs-E_NSR_sciencestyle.pdf',dpi=600)
 # B_z_London_T_all=np.array(B_z_London_T_all)
 
 # ax_Bz_London.legend(
-#                                     title=r'$B_{app}$[mT]:',
+#                                     title=r'$\rm B_{a}$[mT]:',
 #                                     bbox_to_anchor=(1.0,1.0),
 #                                     # loc='best'
 #                                     )
@@ -2312,6 +2258,651 @@ fig_BaveVsE.savefig('NbBase_BAve-vs-E_NSR_sciencestyle.pdf',dpi=600)
 # ax_Bz_London.set_xlabel('x [nm]')#, fontsize=12)
 # ax_Bz_London.set_ylabel('B(x) [mT]')#, fontsize=12)
 
-# # fig_Bz_London.savefig('NbBase_BLondon_vs_x.pdf',dpi=600)
+# fig_Bz_London.savefig('NbBase_BLondon_vs_x_Flat200_ProjFits_sciencestyle.pdf',dpi=600)
+# # fig_Bz_London.savefig('NbBase_BLondon_vs_x_Flat200_ProjFits.pdf',dpi=600)
+
+
+
+
+
+
+
+
+# # """
+# # PLOTS FOR DISCUSSIONS
+# # """
+# # fig_Suscep, ax_Suscep = plt.subplots(
+# #                                     nrows=1,
+# #                                     ncols=1,
+# #                                     figsize=set_size(
+# #                                                         # width='thesis',   
+# #                                                         subplots=(1,1),
+# #                                                         ),
+# #                                     constrained_layout=True,
+# #                                     # sharex='col',
+# #                                 )
+
+# # B_app_arr = []
+# # B_surf_arr = []
+
+# # suscep_abs_val_arr = []
+# # suscep_abs_err_arr = []
+
+# # screenlen_val_arr = []
+# # screenlen_err_arr = []
+
+# # c_Discussion = cm.brg(np.linspace(0,0.85,len(cost_used)))
+# # for idx_b, data_df in enumerate(cost_used): 
+
+# #     # mean_temperature_K_SCDS = data_df["Temperature (K)"].mean()
+    
+# #     mean_field_T_SCDS = data_df["B0 Field (T)"].mean()
+# #     B_app_arr.append(mean_field_T_SCDS)
+
+# #     """
+# #     Load json files for each SCDS
+# #     """
+# #     global_chi2_indiv = LeastSquares3D(
+# #         model=fcn3d,
+# #         x=data_df["Temperature (K)"],
+# #         y=data_df["Impl. Energy (keV)"],
+# #         z=data_df["B0 Field (T)"],
+# #         value=data_df['1_T1_0'],
+# #         error=data_df[['Error_ave 1_T1_0']],
+# #         verbose=True,
+# #     )
+
+# #     with open("./Simple_vortex/Complex_Lor/ConstSC_zero/ET_100/no50/AveLor/ComplexLor_ETCSTVal_GlobFits_Flat200mT_AveLor_Suscep_Proj(110,125,150).json", "r") as file_handle:
+# #         old_results = json.load(file_handle)
+
+# #     m = Minuit(global_chi2_indiv, **old_results["values"])
+
+# #     json2minuit(m, "./Simple_vortex/Complex_Lor/ConstSC_zero/ET_100/no50/AveLor/ComplexLor_ETCSTVal_GlobFits_Flat200mT_AveLor_Suscep_Proj(110,125,150).json")
+
+
+# #     """
+# #     ##########################
+# #     Susceptibility vs B_surf
+# #     ##########################
+# #     """
+# #     suscep_abs_val_arr.append(m.values["suscep_abs_%imT" %(field_mT_B_plot[idx_b])])
+# #     suscep_abs_err_arr.append(m.errors["suscep_abs_%imT" %(field_mT_B_plot[idx_b])])
+    
+    
+# #     enhance_fact = 1/(1-m.values["demag_fact"]*suscep_abs_val_arr[idx_b])
+# #     B_surf_arr.append(mean_field_T_SCDS*enhance_fact)
+    
+
+# #     """
+# #     ##########################
+# #     Screen-len vs B_surf
+# #     ##########################
+# #     """ 
+# #     screenlen_val_arr.append(m.values["lambda_L_%imT_nm" %(field_mT_B_plot[idx_b])])
+    
+# #     screenlen_err_arr.append(m.errors["lambda_L_%imT_nm" %(field_mT_B_plot[idx_b])])
+    
+    
+# #     # B_z_London_mT = dac.london_model(
+# #     #                                     x_GL_nm_arr,
+# #     #                                     # field_mT_B_plot[idx_b]*m.values["enhance_fact"],# convert to Tesla for B-averaging
+# #     #                                     field_mT_B_plot[idx_b]*enhance_fact,# convert to Tesla for B-averaging
+
+# #     #                                     m.values["dead_layer_nm"],
+# #     #                                     m.values["lambda_L_%imT_nm" %(field_mT_B_plot[idx_b])],
+# #     #                                 )
+# #     # B_z_London_T_all.append(B_z_London_mT)
+
+# # ax_Suscep.errorbar(
+# #                     x=B_surf_arr,
+# #                     y=suscep_abs_val_arr,
+# #                     yerr=suscep_abs_err_arr,
+# #                     fmt='o--',
+# #                     zorder=2,
+# #                     c = 'b',
+# #                     ecolor=lighten_color('b',0.4)
+# #                 )
+
+
+
+
+
+
+# """"
+# ##############################
+# T-Scans Plots
+# ##############################
+# """
+# fig_Tscan, ax_Tscan = plt.subplots(
+#     figsize=set_size(width='thesis'),
+#     nrows=2,
+#     ncols=1,
+#     # figsize=(9.6, 4.8),
+#     constrained_layout=True,
+#     sharex='col',
+# ) 
+
+# ax_Tscan50, ax_Tscan100 = ax_Tscan
+
+
+# # Energies_keV_SCTscan =  np.sort(pd.unique(data_50mT_Tscan_20keV["Impl. Energy (keV)"].round(decimals=3)))
+
+# # c_SC_Tscan = cm.rainbow(np.linspace(0,1,Energies_keV_SCTscan.size))
+# # for i, Energy_keV in enumerate(Energies_keV_SCTscan):
+#     # slice the data!
+
+
+# # T_ims =  dac.critical_temperature(
+# #     50e-3, 
+# #     m.values["B_vp_T_0K_nodemag"]*(1-m.values["N_effective"]), 
+# #     m.values["critical_temperature_K"],
+# # )
+
+# # Tc2 =  dac.critical_temperature2(
+# #     50e-3, 
+# #     m.values["critical_field_T"], 
+# #     m.values["critical_temperature_K"],
+# # )
+
+# temperatures_K_Tscan =  np.linspace( 
+#     np.min(data_50mT_Tscan_20keV["Temperature (K)"]) - 1,
+#     np.max(data_50mT_Tscan_20keV["Temperature (K)"]) + 1,
+#     num=N_FIT_POINTS,
+# )
+# ##np.linspace(T_ims,Tc2,num=N_FIT_POINTS)
+
+# data50_TScan_plot_list = [
+#     data_50mT_Tscan_20keV,
+# ]
+# data100_TScan_plot_list = [
+#     data_100mT_Tscan_8keV,
+#     data_100mT_Tscan_12keV,
+#     data_100mT_Tscan_20keV,
+# ]
+# # data_TScan_plot_df = pd.concat(data_TScan_plot_list)
+
+# """
+# Critical Temps parameters:
+# """
+# c_Tscan = ['r','b','k','purple']#cm.rainbow(np.linspace(0,1,len(data_TScan_plot)))##
+# linestyle_Tscan = ['solid','dotted','dashed','dashdot']
+
+# Tc2_K_at_0T = 9.25
+# Tc_K_DT_at_0T = 9.24
+
+# Texp_K = 4.29 #(ET: Oct 2022 beamtime)
+# T_DTexp_K = 4.2 #(DT measurements)
+# # print('T exp:{} K'.format(Texp_K))
+
+# B_vp_T_at_T_DTexp_K = 140.7e-3
+# B_vp_T_at0K = B_vp_T_at_T_DTexp_K/(1-(T_DTexp_K/Tc_K_DT_at_0T)**2) #(DTurner paper)
+# print("B_vp(DTurner):{} mT".format(B_vp_T_at0K*1e3))
+
+# # N_demag_rect = 0.1675 #Prozorov-formula
+# B_ims_SurfVal_T_at_Texp_K = 108.5e-3 #(surface value for Meissner-IMS transition)
+# B_ims_SurfVal_T_at0K = B_ims_SurfVal_T_at_Texp_K/(1-(Texp_K/Tc2_K_at_0T)**2)
+# B_ims_AppFieldVal_T_at_Texp_K = B_ims_SurfVal_T_at_Texp_K*(1-m.values["suscep_abs_100mT"]*m.values["demag_fact"])
+# print("B_ims at the surface:{} mT, corresponding to applied field:{} mT".format(B_ims_SurfVal_T_at_Texp_K*1e3, B_ims_AppFieldVal_T_at_Texp_K))
+
+
+# B_c2_T_at0K = 410.0*1e-3#(Casalbuoni)
+# #380*1e-3#(DTurner:"onset of M_irrev:250 mT at 4.2K")
+
+# r32 = 1.86#(Casalbuoni) 
+# B_c3_T_at0K = 760e-3#r32*B_c2_T_at0K #(Casalbuoni:"ave val") 
+# #793*1e-3#(DTurner:"onset of nonzero Re[chi]:~500 mT at 4.2K")
+
+# B_c3coh_T_at0K = 615e-3#0.81*B_c3_T_at0K#(Casalbuoni)#420*1e-3
+# #(DTurner:"peak of chi_Imag:276.4 mT at 4.2K") 
+
+# # """
+# # Draw Phase Boundaries
+# # """
+# # N_PHASE_BDR_PTS = 100
+# # field_T_plot = np.linspace(0,B_c2_T_at0K+50e-3,100)
+
+# # critical_temperature_vec = np.vectorize(dac.critical_temperature)
+# # critical_temperature2_vec = np.vectorize(dac.critical_temperature2)
+
+# # fig_PB,ax_PB = plt.subplots()
+# # T_vs_B_Meissner_Vortex = critical_temperature_vec(field_T_plot, B_vp_T_at0K, Tc2_K_at_0T)
+# # ax_PB.plot(field_T_plot,T_vs_B_Meissner_Vortex,'r',label='$B_{vp}(T)$')
+
+# # T_vs_B_Vortex_Normal = critical_temperature2_vec(field_T_plot, B_c2_T_at0K, Tc2_K_at_0T)
+# # ax_PB.plot(field_T_plot,T_vs_B_Vortex_Normal,'b',label='$B_{c2}(T)$')
+
+# color_Tval = ['purple','r','g','b','k']
+# alpha_val = 0.35
+
+# """
+# ######################
+# Plot 50 mT Data
+# ######################
+# """
+# for i, data_TScan in enumerate(data50_TScan_plot_list):
+#         mean_energy_keV_Tscan = data_TScan["Impl. Energy (keV)"].mean()
+
+#         mean_field_T_Tscan = data_TScan["B0 Field (T)"].mean()
+
+#         T_ims =  dac.critical_temperature(
+#             mean_field_T_Tscan, 
+#             B_ims_SurfVal_T_at0K,
+#             Tc2_K_at_0T,
+#         )
+#         # print(r'$T_ims(B_ims={}$)={} K$'.format(mean_field_T_Tscan,T_ims))
+        
+#         T_vp =  dac.critical_temperature(
+#             mean_field_T_Tscan, 
+#             B_vp_T_at0K,
+#             Tc2_K_at_0T,
+#         )
+#         # print(r'$T_v(B_v={}$)={} K$'.format(mean_field_T_Tscan,T_vp))
+        
+#         Tc2 =  dac.critical_temperature2(
+#             mean_field_T_Tscan, 
+#             B_c2_T_at0K, 
+#             Tc2_K_at_0T,#m.values["critical_temperature_K"],
+#         )
+#         # print(r'$T_c2(B_c2={}$)={} K$'.format(mean_field_T_Tscan,Tc2))
+        
+#         Tc3 =  dac.critical_temperature2(
+#             mean_field_T_Tscan, 
+#             B_c3_T_at0K, 
+#             Tc2_K_at_0T,#m.values["critical_temperature_K"],
+#         )
+#         # print(r'$T_c3(B_c3={}$)={} K$'.format(mean_field_T_Tscan,Tc3))
+
+#         Tc3_coh =  dac.critical_temperature2(
+#             mean_field_T_Tscan, 
+#             B_c3coh_T_at0K, 
+#             Tc2_K_at_0T,#m.values["critical_temperature_K"],
+#         )
+#         # print(r'$T_c3,coh(B_c3,coh={}$)={} K$'.format(mean_field_T_Tscan,Tc3))
+
+
+#         ax_Tscan50.errorbar(
+#             data_TScan["Temperature (K)"],
+#             data_TScan['1_T1_0'],
+#             # xerr=data_TScan["Temperature Error (K)"],
+#             yerr=data_TScan["Error_ave 1_T1_0"],
+#             fmt="o--",
+#             zorder=2,
+#             c=c_Tscan[i],
+#             label='Data/B:{:.0f} mT E:{:.1f} keV'.format(mean_field_T_Tscan*1e3,mean_energy_keV_Tscan)
+#         )
+
+#         # par_Tscan = [
+            
+#         #     # m.values["temperatures_K"],
+#         #     mean_energy_keV_Tscan,#m.values["energy_keV"],
+#         #     mean_field_T_Tscan,#m.values["applied_field_T"],
+#         #     m.values["dead_layer_nm"],
+#         #     m.values["lambda_L_50mT_nm"],
+#         #     m.values["lambda_L_100mT_nm"],
+#         #     m.values["lambda_L_110mT_nm"],
+#         #     m.values["lambda_L_125mT_nm"],
+#         #     m.values["lambda_L_150mT_nm"],
+#         #     m.values["lambda_L_200mT_nm"],
+#         #     m.values["dipolar_field_T"],
+#         #     m.values["correlation_time_s"],
+#         #     # temperature_K,
+#         #     m.values["critical_temperature_K"],
+#         #     m.values["critical_field_2_T"],
+#         #     m.values["suscep_abs_50mT"],
+#         #     m.values["suscep_abs_100mT"],
+#         #     m.values["suscep_abs_110mT"],
+#         #     m.values["suscep_abs_125mT"],
+#         #     m.values["suscep_abs_150mT"],
+#         #     m.values["suscep_abs_200mT"],
+#         #     m.values["const_SC"],
+#         #     m.values["const_NC"],
+
+#         #     # B_noscreen_T,
+#         #     # enhance_fact_mixed,
+#         #     # B_mixed_T,
+#         #     m.values["demag_fact"],
+#         # ]
+
+#         # ax_Tscan.plot(
+#         #     temperatures_K_Tscan,
+#         #     fcn(temperatures_K_Tscan, *par_Tscan),
+#         #     "-",
+#         #     zorder=1,
+#         #     color=c_Tscan[i],
+#         #     label='Fit/B:{:.0f} mT E:{:.1f} keV'.format(mean_field_T_Tscan*1e3,mean_energy_keV_Tscan)
+#         # )
+
+
+#         # ax_SC_Tscan.legend(
+#         #                     title="SC State T-scans",
+#         #                     # ncol=1,
+#         #                     loc='best',# loc="center left",
+#         #                     # bbox_to_anchor=(1.05, 0.5),
+
+#         #                     )
+
+        
+#         T_vals = [T_ims, T_vp, Tc2, Tc3_coh, Tc3]
+#         T_vals_fillcol = [4.5,T_ims, T_vp, Tc2, Tc3_coh, Tc3]
+#         Tval_labels = [r'$T_{ims}$',r'$T_{vp}$',r'$T_{c2}$',r'$T_{c3,coh}$',r'$T_{c3}$']
+        
+#         for idx_Tvals,t in enumerate(T_vals):
+#              ax_Tscan50.axvline(
+#                             x=T_vals[idx_Tvals], 
+#                             ymin=0, 
+#                             # ymax=None, 
+#                             c=color_Tval[idx_Tvals],
+#                             linestyle=linestyle_Tscan[i],
+#                             alpha=alpha_val+0.2,
+#                             label=Tval_labels[idx_Tvals],#'Tvp ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#                             )
+#              ax_Tscan50.axvspan(
+#                                     xmin=T_vals_fillcol[idx_Tvals],
+#                                     xmax=T_vals_fillcol[idx_Tvals+1],
+#                                     facecolor=color_Tval[idx_Tvals],
+#                                     alpha=alpha_val,
+#                                 )
+            
+#         # ax_Tscan50.axvline(
+#         #                     x=T_ims, 
+#         #                     ymin=0, 
+#         #                     # ymax=None, 
+#         #                     c='r',#c_Tscan[i],
+#         #                     linestyle=linestyle_Tscan[i],
+#         #                     alpha=alpha_val,
+#         #                     label='$T_{ims}$',#'Tvp ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#         #                     )
+        
+#         # ax_Tscan50.axvline(
+#         #                     x=T_vp, 
+#         #                     ymin=0, 
+#         #                     # ymax=None, 
+#         #                     c='g',#c_Tscan[i],
+#         #                     linestyle=linestyle_Tscan[i],
+#         #                     alpha=alpha_val,
+#         #                     label='$T_{vp}$',#'Tvp ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#         #                     )
+        
+#         # ax_Tscan50.axvline(
+#         #                     x=Tc2, 
+#         #                     ymin=0, 
+#         #                     # ymax=None, 
+#         #                     c='b',#c_Tscan[i],
+#         #                     linestyle=linestyle_Tscan[i],
+#         #                     alpha=alpha_val,
+#         #                     label='$T_{c2}$',#'Tc2 ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#         #                     )
+        
+#         # ax_Tscan50.axvline(
+#         #                     x=Tc3, 
+#         #                     ymin=0, 
+#         #                     # ymax=None, 
+#         #                     c='b',#c_Tscan[i],
+#         #                     linestyle=linestyle_Tscan[i],
+#         #                     alpha=alpha_val,
+#         #                     label='$T_{c3}$',#'Tc3 ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#         #                     )
+        
+#         # ax_Tscan50.axvline(
+#         #                     x=Tc3_coh, 
+#         #                     ymin=0, 
+#         #                     # ymax=None, 
+#         #                     c='k',#c_Tscan[i],
+#         #                     linestyle=linestyle_Tscan[i],
+#         #                     alpha=alpha_val,
+#         #                     label='$T_{c3,coh}$,'#'Tc3,coh ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#         #                 )
+        
+
+
+# ax_Tscan50.set_ylabel(r'$1/T_1$ [$s^{-1}$]')
+# # ax_Tscan.set_ylabel(r'$\langle B \rangle$ [T]')
+
+# ax_Tscan50.set_xlabel('Temp. [K]')
+# # ax_Tscan.set_xlim([4.2,12])
+
+# ax_Tscan50.legend(bbox_to_anchor=(1.0,1.0),)
+
+
+
+# """
+# ######################
+# Plot 100 mT Data
+# ######################
+# """
+# for i, data_TScan in enumerate(data100_TScan_plot_list):
+#         mean_energy_keV_Tscan = data_TScan["Impl. Energy (keV)"].mean()
+
+#         mean_field_T_Tscan = data_TScan["B0 Field (T)"].mean()
+
+#         # T_ims =  dac.critical_temperature(
+#         #     mean_field_T_Tscan, 
+#         #     m.values["B_vp_T_0K_nodemag"]*(1-m.values["N_effective"]), 
+#         #     m.values["critical_temperature_K"],
+#         # )
+#         T_ims =  dac.critical_temperature(
+#             mean_field_T_Tscan, 
+#             B_ims_SurfVal_T_at0K,
+#             Tc2_K_at_0T,
+#         )
+#         # print(r'$T_ims(B_ims={}$)={} K$'.format(mean_field_T_Tscan,T_ims))
+        
+#         T_vp =  dac.critical_temperature(
+#             mean_field_T_Tscan, 
+#             B_vp_T_at0K,
+#             Tc2_K_at_0T,
+#         )
+#         # print(r'$T_v(B_v={}$)={} K$'.format(mean_field_T_Tscan,T_vp))
+
+#         Tc2 =  dac.critical_temperature2(
+#             mean_field_T_Tscan, 
+#             B_c2_T_at0K, 
+#             Tc2_K_at_0T,#m.values["critical_temperature_K"],
+#         )
+#         # print(r'$T_c2(B_c2={}$)={} K$'.format(mean_field_T_Tscan,Tc2))
+        
+#         Tc3 =  dac.critical_temperature2(
+#             mean_field_T_Tscan, 
+#             B_c3_T_at0K, 
+#             Tc2_K_at_0T,#m.values["critical_temperature_K"],
+#         )
+#         # print(r'$T_c3(B_c3={}$)={} K$'.format(mean_field_T_Tscan,Tc3))
+
+#         Tc3_coh =  dac.critical_temperature2(
+#             mean_field_T_Tscan, 
+#             B_c3coh_T_at0K, 
+#             Tc2_K_at_0T,#m.values["critical_temperature_K"],
+#         )
+#         # print(r'$T_c3,coh(B_c3,coh={}$)={} K$'.format(mean_field_T_Tscan,Tc3))
+
+
+#         ax_Tscan100.errorbar(
+#             data_TScan["Temperature (K)"],
+#             data_TScan['1_T1_0'],
+#             # xerr=data_TScan["Temperature Error (K)"],
+#             yerr=data_TScan["Error_ave 1_T1_0"],
+#             fmt="o--",
+#             zorder=2,
+#             c=c_Tscan[i],
+#             label='Data/B:{:.0f} mT E:{:.1f} keV'.format(mean_field_T_Tscan*1e3,mean_energy_keV_Tscan)
+#         )
+
+#         # par_Tscan = [
+            
+#         #     # m.values["temperatures_K"],
+#         #     mean_energy_keV_Tscan,#m.values["energy_keV"],
+#         #     mean_field_T_Tscan,#m.values["applied_field_T"],
+#         #     m.values["dead_layer_nm"],
+#         #     m.values["lambda_L_50mT_nm"],
+#         #     m.values["lambda_L_100mT_nm"],
+#         #     m.values["lambda_L_110mT_nm"],
+#         #     m.values["lambda_L_125mT_nm"],
+#         #     m.values["lambda_L_150mT_nm"],
+#         #     m.values["lambda_L_200mT_nm"],
+#         #     m.values["dipolar_field_T"],
+#         #     m.values["correlation_time_s"],
+#         #     # temperature_K,
+#         #     m.values["critical_temperature_K"],
+#         #     m.values["critical_field_2_T"],
+#         #     m.values["suscep_abs_50mT"],
+#         #     m.values["suscep_abs_100mT"],
+#         #     m.values["suscep_abs_110mT"],
+#         #     m.values["suscep_abs_125mT"],
+#         #     m.values["suscep_abs_150mT"],
+#         #     m.values["suscep_abs_200mT"],
+#         #     m.values["const_SC"],
+#         #     m.values["const_NC"],
+
+#         #     # B_noscreen_T,
+#         #     # enhance_fact_mixed,
+#         #     # B_mixed_T,
+#         #     m.values["demag_fact"],
+#         # ]
+
+#         # ax_Tscan.plot(
+#         #     temperatures_K_Tscan,
+#         #     fcn(temperatures_K_Tscan, *par_Tscan),
+#         #     "-",
+#         #     zorder=1,
+#         #     color=c_Tscan[i],
+#         #     label='Fit/B:{:.0f} mT E:{:.1f} keV'.format(mean_field_T_Tscan*1e3,mean_energy_keV_Tscan)
+#         # )
+
+
+#         # ax_SC_Tscan.legend(
+#         #                     title="SC State T-scans",
+#         #                     # ncol=1,
+#         #                     loc='best',# loc="center left",
+#         #                     # bbox_to_anchor=(1.05, 0.5),
+
+#         #                     )
+
+        
+        
+#         T_vals = [T_ims, T_vp, Tc2, Tc3_coh, Tc3]
+#         T_vals_fillcol = [4.5,T_ims, T_vp, Tc2, Tc3_coh, Tc3]
+#         Tval_labels = [r'$T_{ims}$',r'$T_{vp}$',r'$T_{c2}$',r'$T_{c3,coh}$',r'$T_{c3}$']
+        
+#         for idx_Tvals,t in enumerate(T_vals):
+#              ax_Tscan100.axvline(
+#                             x=T_vals[idx_Tvals], 
+#                             ymin=0, 
+#                             # ymax=None, 
+#                             c=color_Tval[idx_Tvals],
+#                             linestyle=linestyle_Tscan[i],
+#                             alpha=(alpha_val+0.2)/len(data100_TScan_plot_list),
+#                             # label=Tval_labels[idx_Tvals],#'Tvp ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#                             )
+#              ax_Tscan100.axvspan(
+#                                     xmin=T_vals_fillcol[idx_Tvals],
+#                                     xmax=T_vals_fillcol[idx_Tvals+1],
+#                                     facecolor=color_Tval[idx_Tvals],
+#                                     alpha=alpha_val/len(data100_TScan_plot_list),
+#                                 )
+#         # ax_Tscan100.axvline(
+#         #                     x=T_ims, 
+#         #                     ymin=0, 
+#         #                     # ymax=None, 
+#         #                     c='r',#c_Tscan[i],
+#         #                     linestyle=linestyle_Tscan[i],
+#         #                     alpha=alpha_val,
+#         #                     # label='Tvp ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#         #                     )
+        
+        
+#         # ax_Tscan100.axvline(
+#         #                     x=Tc2, 
+#         #                     ymin=0, 
+#         #                     # ymax=None, 
+#         #                     c='g',#c_Tscan[i],
+#         #                     linestyle=linestyle_Tscan[i],
+#         #                     alpha=alpha_val,
+#         #                     # label='Tc2 ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#         #                     )
+        
+#         # ax_Tscan100.axvline(
+#         #                     x=Tc3, 
+#         #                     ymin=0, 
+#         #                     # ymax=None, 
+#         #                     c='b',#c_Tscan[i],
+#         #                     linestyle=linestyle_Tscan[i],
+#         #                     alpha=alpha_val,
+#         #                     # label='Tc3 ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#         #                     )
+        
+#         # ax_Tscan100.axvline(
+#         #                     x=Tc3_coh, 
+#         #                     ymin=0, 
+#         #                     # ymax=None, 
+#         #                     c='k',#c_Tscan[i],
+#         #                     linestyle=linestyle_Tscan[i],
+#         #                     alpha=alpha_val,
+#         #                     # label='Tc3,coh ({:.0f} mT)'.format(mean_field_T_Tscan*1e3)
+#         #                 )
+        
+#         # ax_Tscan.axvline(
+#         #                     x=Tc2, 
+#         #                     ymin=0, 
+#         #                     # ymax=None, 
+#         #                     c=c_Tscan[i],
+#         #                     linestyle='--',
+#         #                     alpha=0.8,
+#         #                     )
+
+#         # ax_Tscan.legend(
+#         #                     title="T-scans",
+#         #                     # ncol=1,
+#         #                     loc='best',# loc="center left",
+#         #                     # bbox_to_anchor=(1.05, 0.5),
+#                             # )
+
+# ax_Tscan100.set_ylabel(r'$1/T_1$ [$s^{-1}$]')
+# # ax_Tscan.set_ylabel(r'$\langle B \rangle$ [T]')
+
+# ax_Tscan100.set_xlabel('Temp. [K]')
+# # ax_Tscan.set_xlim([4.2,12])
+
+# ax_Tscan100.legend(bbox_to_anchor=(1.0,1.0))
+
+# # fig_Tscan.savefig('NbBase_Tscans_CasalbuoniVals.pdf',dpi=600)
+
+
+
+# """  
+# ############################################
+# Plot Nb-Baseline T-scan 50 mT with Fits to the NLME
+# ############################################
+# """
+# lambda_100mT_4p2K_nm = # m.values["lambda_L_100mT_nm"]
+# lambda_0mT_0K = 
+
+# fig_Tscan50, ax_Tscan50 = plt.subtplots(
+#                                             figsize=set_size(width='thesis'),
+#                                             nrows=1,
+#                                             ncols=1,
+#                                             # figsize=(9.6, 4.8),
+#                                             constrained_layout=True,
+#                                             # sharex='col',
+#                                         ) 
+
+# for i, data_Tscan50 in enumerate(data50_TScan_plot_list):
+    
+#     mean_energy_keV_Tscan = data_TScan["Impl. Energy (keV)"].mean()
+#     mean_field_T_Tscan = data_TScan["B0 Field (T)"].mean()
+    
+#     print('E:{} keV, B:{} mT'.format(mean_energy_keV_Tscan, mean_field_T_Tscan*1e3))
+    
+#     ax_Tscan50.errorbar(
+#             data_Tscan50["Temperature (K)"],
+#             data_Tscan50['1_T1_0'],
+#             # xerr=data_TScan["Temperature Error (K)"],
+#             yerr=data_Tscan50["Error_ave 1_T1_0"],
+#             fmt="o--",
+#             zorder=2,
+#             c=c_Tscan[i],
+#             label='Data/B:{:.0f} mT E:{:.1f} keV'.format(mean_field_T_Tscan*1e3,mean_energy_keV_Tscan)
+#         )
+    
+
 
 plt.show(block=True)
