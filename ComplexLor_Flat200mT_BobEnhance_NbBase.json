@@ -1,0 +1,123 @@
+{
+	"values": {
+		"dipolar_field_T": 6.2111175621671e-05,
+		"correlation_time_s": 1.6189811873356893e-07,
+		"dead_layer_nm": 11.7301860151909,
+		"lambda_L_50mT_nm": 17.473906538174763,
+		"lambda_L_100mT_nm": 42.76834324506124,
+		"lambda_L_110mT_nm": 65.58450973770658,
+		"lambda_L_125mT_nm": 127.83100573780376,
+		"lambda_L_150mT_nm": 187.3392949297749,
+		"lambda_L_200mT_nm": Infinity,
+		"enhance_fact_Meissner": 1.081,
+		"norm_enhance_fact_50mT": 1.0,
+		"norm_enhance_fact_100mT": 1.0,
+		"norm_enhance_fact_110mT": 0.1446584472270333,
+		"norm_enhance_fact_125mT": 2.776918247571203e-07,
+		"norm_enhance_fact_150mT": 2.118547091978229e-06,
+		"norm_enhance_fact_200mT": 0.0
+	},
+	"errors": {
+		"dipolar_field_T": 7.834645200748028e-07,
+		"correlation_time_s": 1.4053370066591878e-08,
+		"dead_layer_nm": 2.9322491274810867,
+		"lambda_L_50mT_nm": 0.17473906538174763,
+		"lambda_L_100mT_nm": 13.197795857012089,
+		"lambda_L_110mT_nm": 5.628998664498828,
+		"lambda_L_125mT_nm": 5.983580633163935,
+		"lambda_L_150mT_nm": 10.714751426618152,
+		"lambda_L_200mT_nm": Infinity,
+		"enhance_fact_Meissner": 0.01081,
+		"norm_enhance_fact_50mT": 0.01,
+		"norm_enhance_fact_100mT": 0.01,
+		"norm_enhance_fact_110mT": 0.5500393740221223,
+		"norm_enhance_fact_125mT": 0.09258309896812039,
+		"norm_enhance_fact_150mT": 0.7435769368923626,
+		"norm_enhance_fact_200mT": 0.1
+	},
+	"limits": {
+		"dipolar_field_T": [
+			-Infinity,
+			Infinity
+		],
+		"correlation_time_s": [
+			-Infinity,
+			Infinity
+		],
+		"dead_layer_nm": [
+			-Infinity,
+			Infinity
+		],
+		"lambda_L_50mT_nm": [
+			-Infinity,
+			Infinity
+		],
+		"lambda_L_100mT_nm": [
+			-Infinity,
+			Infinity
+		],
+		"lambda_L_110mT_nm": [
+			-Infinity,
+			Infinity
+		],
+		"lambda_L_125mT_nm": [
+			-Infinity,
+			Infinity
+		],
+		"lambda_L_150mT_nm": [
+			-Infinity,
+			Infinity
+		],
+		"lambda_L_200mT_nm": [
+			-Infinity,
+			Infinity
+		],
+		"enhance_fact_Meissner": [
+			1.0,
+			2.0
+		],
+		"norm_enhance_fact_50mT": [
+			-Infinity,
+			Infinity
+		],
+		"norm_enhance_fact_100mT": [
+			0.0,
+			1.0
+		],
+		"norm_enhance_fact_110mT": [
+			0.0,
+			1.0
+		],
+		"norm_enhance_fact_125mT": [
+			0.0,
+			1.0
+		],
+		"norm_enhance_fact_150mT": [
+			0.0,
+			1.0
+		],
+		"norm_enhance_fact_200mT": [
+			0.0,
+			1.0
+		]
+	},
+	"fixed": {
+		"dipolar_field_T": true,
+		"correlation_time_s": true,
+		"dead_layer_nm": true,
+		"lambda_L_50mT_nm": true,
+		"lambda_L_100mT_nm": true,
+		"lambda_L_110mT_nm": true,
+		"lambda_L_125mT_nm": true,
+		"lambda_L_150mT_nm": false,
+		"lambda_L_200mT_nm": true,
+		"enhance_fact_Meissner": true,
+		"norm_enhance_fact_50mT": true,
+		"norm_enhance_fact_100mT": true,
+		"norm_enhance_fact_110mT": true,
+		"norm_enhance_fact_125mT": true,
+		"norm_enhance_fact_150mT": false,
+		"norm_enhance_fact_200mT": true
+	},
+	"merrors": {}
+}
